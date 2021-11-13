@@ -6,7 +6,7 @@
         xmlns:hc="https://handyorg.github.io/handycontrol"
         mc:Ignorable="d"
         Title="Osakabehime" Height="450" Width="800" ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
-        Icon="Assets/icon.ico">
+        Icon="Assets/icon.ico" ContentRendered="On_Load">
     <Grid>
         <TabControl Margin="0,0,0,0" FontFamily="Source Han Sans SC">
             <TabControl.Background>
@@ -31,7 +31,7 @@
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                             x:Name="Start" Content="开始下载" HorizontalAlignment="Left"
                             Margin="119,349,0,0" VerticalAlignment="Top" Width="157"
-                            Foreground="#FFFFFFFF">
+                            Foreground="#FFFFFFFF" Click="DownloadOn">
                         <Button.Background>
                             <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
                                 <GradientStop Color="#FF326CF3" Offset="0" />
@@ -39,7 +39,7 @@
                             </LinearGradientBrush>
                         </Button.Background>
                     </Button>
-                    <hc:Divider Margin="10,85,388.6,293.8" />
+                    <hc:Divider Margin="10,85,388.6,275.8" />
                     <TextBlock Text="下载模式:"
                                HorizontalAlignment="Left" Height="24" Margin="10,90,0,0"
                                VerticalAlignment="Top"
@@ -61,33 +61,21 @@
                                VerticalAlignment="Top"
                                Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
                                FontFamily="Source Han Sans SC" />
-                    <TextBlock Text="IOS/Android:"
-                               HorizontalAlignment="Left" Height="24" Margin="10,186,0,0"
-                               VerticalAlignment="Top"
-                               Width="95" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
-                    <RadioButton x:Name="IOS" Content="IOS" HorizontalAlignment="Left" Margin="74,210,0,0"
-                                 VerticalAlignment="Top" GroupName="IorA"
-                                 IsChecked="False"
-                                 ToolTip="选择下载IOS还是Android的素材." />
-                    <RadioButton x:Name="Android" Content="Android" HorizontalAlignment="Left" Margin="214,210,0,0"
-                                 VerticalAlignment="Top" GroupName="IorA"
-                                 IsChecked="True"
-                                 ToolTip="选择下载IOS还是Android的素材." />
                     <TextBlock Text="下载线程(线程越高下载越快，但失败率越高):"
-                               HorizontalAlignment="Left" Height="24" Margin="10,235,0,0"
+                               HorizontalAlignment="Left" Height="24" Margin="10,187,0,0"
                                VerticalAlignment="Top"
                                Width="273" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
-                    <RadioButton x:Name="OneThread" Content="单线程" HorizontalAlignment="Left" Margin="74,260,0,0"
+                    <RadioButton x:Name="OneThread" Content="单线程" HorizontalAlignment="Left" Margin="74,211,0,0"
                                  VerticalAlignment="Top" GroupName="DownloadThread"
                                  IsChecked="True" />
-                    <RadioButton x:Name="TwoThread" Content="2线程" HorizontalAlignment="Left" Margin="74,283,0,0"
+                    <RadioButton x:Name="TwoThread" Content="2线程" HorizontalAlignment="Left" Margin="74,234,0,0"
                                  VerticalAlignment="Top" GroupName="DownloadThread" ToolTip="根据文件是否有增加进行差异下载，精准度低." />
-                    <RadioButton x:Name="ThreeThread" Content="4线程" HorizontalAlignment="Left" Margin="74,306,0,0"
+                    <RadioButton x:Name="FourThread" Content="4线程" HorizontalAlignment="Left" Margin="74,257,0,0"
                                  VerticalAlignment="Top" GroupName="DownloadThread" ToolTip="不论文件是否已经存在，执行全量下载." />
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                         x:Name="ResetDownloadStatus" Content="重置进度" HorizontalAlignment="Left"
                         Margin="315,349,0,0" VerticalAlignment="Top" Width="90"
-                        Foreground="#FFFFFFFF" ToolTip="[重要]请确定右侧进度条已不再走动之后再点击本按钮刷新界面." Visibility="Collapsed">
+                        Foreground="#FFFFFFFF" ToolTip="[重要]请确定右侧进度条已不再走动之后再点击本按钮刷新界面." Visibility="Collapsed" Click="ClearSuper1" >
                         <Button.Background>
                             <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
                                 <GradientStop Color="#FF326CF3" Offset="0" />
@@ -105,7 +93,7 @@
                                Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
                                FontFamily="Source Han Sans SC" />
                     <ProgressBar x:Name="Decrypt_Progress" HorizontalAlignment="Left" Height="20" Margin="410,359,0,0"
-                                 VerticalAlignment="Top" Width="374" Maximum="50000" SmallChange="0.01" LargeChange="5" />
+                                 VerticalAlignment="Top" Width="374" Maximum="100000" SmallChange="0.01" LargeChange="5"/>
                     <ListBox x:Name="Decrypt_Status" HorizontalAlignment="Left" Height="334" Margin="410,20,0,0"
                              VerticalAlignment="Top" Width="374" Foreground="#FF737373"
                              FontSize="10.5">
@@ -116,7 +104,7 @@
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                             x:Name="Start_Decrypt" Content="选择目录" HorizontalAlignment="Left"
                             Margin="119,349,0,0" VerticalAlignment="Top" Width="157"
-                            Foreground="#FFFFFFFF">
+                            Foreground="#FFFFFFFF" Click ="AssetDecrypt">
                         <Button.Background>
                             <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
                                 <GradientStop Color="#FF326CF3" Offset="0" />
@@ -124,7 +112,7 @@
                             </LinearGradientBrush>
                         </Button.Background>
                     </Button>
-                    <hc:Divider Margin="10,51,388.6,327.8" />
+                    <hc:Divider Margin="10,51,388.6,322.8" />
                     <TextBlock Text="是否需要进行文件重命名?(基于AssetStorage.txt)"
                                HorizontalAlignment="Left" Height="29" Margin="10,61,0,0"
                                VerticalAlignment="Top"
@@ -150,6 +138,15 @@
                         VerticalAlignment="Top" GroupName="DServer" />
                     <RadioButton x:Name="SrvEN" Content="EN" HorizontalAlignment="Left" Margin="74,201,0,0"
                         VerticalAlignment="Top" GroupName="DServer" />
+                    <TextBlock Text="是否删除原文件只保留解密文件?"
+                        HorizontalAlignment="Left" Height="29" Margin="10,223,0,0"
+                        VerticalAlignment="Top"
+                        Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
+                    <RadioButton x:Name="DelYes" Content="是" HorizontalAlignment="Left" Margin="74,257,0,0"
+                        VerticalAlignment="Top" GroupName="ifDelFile"
+                        IsChecked="True"/>
+                    <RadioButton x:Name="DelNo" Content="否" HorizontalAlignment="Left" Margin="198,257,0,0"
+                        VerticalAlignment="Top" GroupName="ifDelFile" />
                 </Grid>
             </TabItem>
             <TabItem Header="音视频解密" >
@@ -159,7 +156,7 @@
                                VerticalAlignment="Top"
                                Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
                                FontFamily="Source Han Sans SC" />
-                    <hc:Divider Margin="10,51,388.6,327.8" />
+                    <hc:Divider Margin="10,51,388.6,322.8" />
                     <TextBlock Text="解包音频/视频:"
                                HorizontalAlignment="Left" Height="29" Margin="10,61,0,0"
                                VerticalAlignment="Top"
@@ -188,10 +185,10 @@
                     <TextBlock Text="Osakabehime" HorizontalAlignment="Left" Height="40"
                                Margin="10,10,0,0" VerticalAlignment="Top" Width="383"
                                FontSize="18" Foreground="#FF333333" FontWeight="Bold" />
-                    <hc:Divider LineStrokeThickness="1" Margin="10,225,9.6,157.8" LineStrokeDashArray="2,2"
+                    <hc:Divider LineStrokeThickness="1" Margin="10,215,9.6,157.8" LineStrokeDashArray="2,2"
                                 LineStroke="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" />
                     <TextBlock x:Name="VersionLabel" Text="版本号:" HorizontalAlignment="Left" Height="27"
-                               Margin="607,168,0,0" VerticalAlignment="Top" Width="124"
+                               Margin="437,23,0,0" VerticalAlignment="Top" Width="124"
                                FontSize="11.5" Foreground="#FF333333" />
                     <TextBlock Text="作者: @TAKAGIMIWAKO" HorizontalAlignment="Left" Height="27" Margin="10,54,0,0"
                                VerticalAlignment="Top" Width="259" FontSize="11.5"
