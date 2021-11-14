@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -29,6 +29,7 @@ namespace Osakabehime
         private static string[,] tmp;
         private static string[,] tmpold;
         private static readonly object LockedList = new object();
+
         public MainWindow()
         {
             InitializeComponent();
@@ -134,6 +135,7 @@ namespace Osakabehime
                 if (DelYes.IsChecked == true) isDeleteFile = true;
             });
             Dispatcher.Invoke(() => { Decrypt_Status.Items.Clear(); });
+            var ifcontinue = true;
             Dispatcher.Invoke(() =>
             {
                 if (RenameYes.IsChecked != true) return;
@@ -174,10 +176,20 @@ namespace Osakabehime
                     MessageBox.Error(
                         "AssetStorage.txt文件不存在\r\n请检查输入文件夹内是否存在\"cfb1d36393fd67385e046b084b7cf7ed\"\r\n或者\"AssetStorage.txt\"文件.\r\n本次将跳过重命名内容.",
                         "错误");
+                    ifcontinue = false;
                 }
             });
             Dispatcher.Invoke(() => { Decrypt_Status.Items.Insert(0, "开始解密bin."); });
             var fileCountbin = Directory.GetFiles(folder.FullName, "*.bin").Length;
+            if (fileCountbin == 0)
+            {
+                MessageBox.Error(
+                    "不存在bin文件,请查看目录是否选择错误.",
+                    "错误");
+                Dispatcher.Invoke(() => { Decrypt_Status.Items.Clear(); });
+                return;
+            }
+
             var fileCountall = Directory.GetFiles(folder.FullName).Length;
             var progressValuebin = Convert.ToDouble(100000 / fileCountbin);
             var progressValueall = Convert.ToDouble(100000 / fileCountall);
@@ -202,7 +214,7 @@ namespace Osakabehime
                     Dispatcher.Invoke(() => { MessageBox.Error("解密时遇到错误.\r\n", "错误"); });
                 }
             });
-            var ifcontinue = true;
+
             Dispatcher.Invoke(() =>
             {
                 if (RenameYes.IsChecked == true) ifcontinue = true;
@@ -213,14 +225,11 @@ namespace Osakabehime
                 Decrypt_Status.Items.Insert(0, "完成.");
                 return;
             }
+
             Thread.Sleep(500);
-            Dispatcher.Invoke(() => {
-                Decrypt_Status.Items.Insert(0, "现在开始重命名所有资源文件.读取json中...");
-            });
+            Dispatcher.Invoke(() => { Decrypt_Status.Items.Insert(0, "现在开始重命名所有资源文件.读取json中..."); });
             Thread.Sleep(1500);
-            Dispatcher.Invoke(() => {
-                Decrypt_Progress.Value = 0;
-            });
+            Dispatcher.Invoke(() => { Decrypt_Progress.Value = 0; });
             var AssetJsonName = File.ReadAllText(decrypt.FullName + @"\AssetName.json");
             var AssetJsonNameArray = (JArray) JsonConvert.DeserializeObject(AssetJsonName);
             var binCountall = Directory.GetFiles(renamedAssets.FullName).Length;
@@ -242,7 +251,6 @@ namespace Osakabehime
                     Thread.Sleep(10);
                 });
             });
-            
         }
 
         private async void AssetDecrypt(object sender, RoutedEventArgs e)
@@ -262,6 +270,7 @@ namespace Osakabehime
             Thread.Sleep(1500);
             Start_Decrypt.IsEnabled = true;
         }
+
         private void DownloadOn(object sender, RoutedEventArgs e)
         {
             var Starter = new Task(DownloadAssets);
@@ -280,8 +289,7 @@ namespace Osakabehime
             else if (!File.Exists(AssetStorageFilePath))
             {
                 MessageBox.Error("未找到AssetStorage.txt文件,请通过Altera进行下载.", "错误");
-                Dispatcher.Invoke(() => { Start.IsEnabled = true; 
-                });
+                Dispatcher.Invoke(() => { Start.IsEnabled = true; });
                 return;
             }
 
@@ -310,17 +318,11 @@ namespace Osakabehime
             var DataVersion = DataTimeStringINFO[2];
             var DownloadParallel = 1;
             _ = Dispatcher.Invoke(async () =>
-              {
-                  if (TwoThread.IsChecked == true)
-                  {
-                      DownloadParallel = 2;
-                  }
-                  if (FourThread.IsChecked == true)
-                  {
-                      DownloadParallel = 4;
-                  }
-              });
-            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
+            {
+                if (TwoThread.IsChecked == true) DownloadParallel = 2;
+                if (FourThread.IsChecked == true) DownloadParallel = 4;
+            });
+            var paralleloptions = new ParallelOptions {MaxDegreeOfParallelism = DownloadParallel};
             var ProgressBarValueAdd = 50000 / DownloadLine.Count;
             var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
             Parallel.ForEach(DownloadLine, paralleloptions, async DownloadItem =>
@@ -329,7 +331,8 @@ namespace Osakabehime
                 {
                     var downloadName = tmp[DownloadItem, 4].Replace('/', '_');
                     var downloadfile = downloadName;
-                    var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" + DataVersion.Replace(":", "") + "\\" + tmp[DownloadItem, 4].Replace("/", "\\");
+                    var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
+                                    DataVersion.Replace(":", "") + "\\" + tmp[DownloadItem, 4].Replace("/", "\\");
                     var writeDirectory = Path.GetDirectoryName(writePath);
                     if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
                     File.Delete(writePath);
@@ -480,6 +483,7 @@ namespace Osakabehime
                 });
                 return;
             }
+
             var n = ASLineCount / 8;
             var mod = ASLineCount % 8;
             var task1 = FindASDiffer(0, n);
@@ -582,16 +586,10 @@ namespace Osakabehime
             var DownloadParallel = 1;
             Dispatcher.Invoke(() =>
             {
-                if (TwoThread.IsChecked == true)
-                {
-                    DownloadParallel = 2;
-                }
-                if (FourThread.IsChecked == true)
-                {
-                    DownloadParallel = 4;
-                }
+                if (TwoThread.IsChecked == true) DownloadParallel = 2;
+                if (FourThread.IsChecked == true) DownloadParallel = 4;
             });
-            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
+            var paralleloptions = new ParallelOptions {MaxDegreeOfParallelism = DownloadParallel};
             Parallel.ForEach(assetList, paralleloptions, asset =>
             {
                 _ = Dispatcher.InvokeAsync(async () =>
@@ -599,7 +597,8 @@ namespace Osakabehime
                     var filename = asset["fileName"].ToString();
                     var assetName = asset["assetName"].ToString();
                     if (!assetName.EndsWith(".unity3d")) return;
-                    var writePath = AssetsFolder.FullName.Substring(0,AssetsFolder.FullName.Length-1) + "@Version@" + DataVersion.Replace(":","") + "\\";
+                    var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
+                                    DataVersion.Replace(":", "") + "\\";
                     var names = assetName.Split('@');
                     if (names.Length > 1)
                     {
@@ -646,23 +645,18 @@ namespace Osakabehime
             var DownloadParallel = 1;
             Dispatcher.Invoke(() =>
             {
-                if (TwoThread.IsChecked == true)
-                {
-                    DownloadParallel = 2;
-                }
-                if (FourThread.IsChecked == true)
-                {
-                    DownloadParallel = 4;
-                }
+                if (TwoThread.IsChecked == true) DownloadParallel = 2;
+                if (FourThread.IsChecked == true) DownloadParallel = 4;
             });
-            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
+            var paralleloptions = new ParallelOptions {MaxDegreeOfParallelism = DownloadParallel};
             _ = Dispatcher.InvokeAsync(() =>
             {
                 if (isDownloadAudio.IsChecked == true)
                     Parallel.ForEach(audioList, paralleloptions, async audio =>
                     {
                         var audioName = audio["audioName"].ToString();
-                        var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" + DataVersion.Replace(":", "") + "\\";
+                        var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
+                                        "@Version@" + DataVersion.Replace(":", "") + "\\";
                         var names = audioName.Split('@');
                         if (names.Length > 1)
                         {
@@ -710,23 +704,18 @@ namespace Osakabehime
             var DownloadParallel = 1;
             Dispatcher.Invoke(() =>
             {
-                if (TwoThread.IsChecked == true)
-                {
-                    DownloadParallel = 2;
-                }
-                if (FourThread.IsChecked == true)
-                {
-                    DownloadParallel = 4;
-                }
+                if (TwoThread.IsChecked == true) DownloadParallel = 2;
+                if (FourThread.IsChecked == true) DownloadParallel = 4;
             });
-            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
+            var paralleloptions = new ParallelOptions {MaxDegreeOfParallelism = DownloadParallel};
             Dispatcher.InvokeAsync(() =>
             {
                 if (isDownloadMovie.IsChecked == true)
                     Parallel.ForEach(movieList, paralleloptions, async movie =>
                     {
                         var movieName = movie["movieName"].ToString();
-                        var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" + DataVersion.Replace(":", "") + "\\";
+                        var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
+                                        "@Version@" + DataVersion.Replace(":", "") + "\\";
                         var names = movieName.Split('@');
                         if (names.Length > 1)
                         {
@@ -833,6 +822,153 @@ namespace Osakabehime
             ResetDownloadStatus.Visibility = Visibility.Collapsed;
             Start.IsEnabled = true;
             Download_Status.Items.Clear();
+        }
+
+        private void VersionCheckEvent()
+        {
+            string VerChkRaw;
+            JObject VerChk;
+            JArray VerAssetsJArray;
+            CommonStrings.ExeUpdateUrl = "";
+            CommonStrings.NewerVersion = "";
+            try
+            {
+                VerChkRaw = HttpRequest.GetApplicationUpdateJson();
+                VerChk = JObject.Parse(VerChkRaw);
+            }
+            catch (Exception e)
+            {
+                Dispatcher.Invoke(() => { MessageBox.Error("网络连接异常,请检查网络连接并重试.\r\n" + e, "网络连接异常"); });
+                CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
+                return;
+            }
+
+            if (CommonStrings.VersionTag != VerChk["tag_name"].ToString())
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    CommonStrings.SuperMsgBoxRes = MessageBox.Show(
+                        Application.Current.MainWindow,
+                        "检测到软件更新\r\n\r\n新版本为:  " + VerChk["tag_name"] + "    当前版本为:  " + CommonStrings.VersionTag +
+                        "\r\n\r\nChangeLog:\r\n" + VerChk["body"] + "\r\n\r\n点击\"确认\"按钮可选择更新.", "检查更新",
+                        MessageBoxButton.OKCancel,
+                        MessageBoxImage.Question);
+                });
+                if (CommonStrings.SuperMsgBoxRes == MessageBoxResult.OK)
+                {
+                    VerAssetsJArray = (JArray) JsonConvert.DeserializeObject(VerChk["assets"].ToString());
+                    for (var i = 0; i <= VerAssetsJArray.Count - 1; i++)
+                        if (VerAssetsJArray[i]["name"].ToString() == "Osakabehime.exe")
+                            CommonStrings.ExeUpdateUrl = VerAssetsJArray[i]["browser_download_url"].ToString();
+                    if (CommonStrings.ExeUpdateUrl == "")
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show(
+                                Application.Current.MainWindow, "确认到新版本更新,但是获取下载Url失败.\r\n", "获取Url失败",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                        });
+                        MessageBox.Error("确认到新版本更新,但是获取下载Url失败.\r\n", "获取Url失败");
+                        CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
+                        return;
+                    }
+
+                    var Sub = new Task(() => { DownloadFilesSub(VerChk["tag_name"].ToString()); });
+                    Sub.Start();
+                }
+                else
+                {
+                    CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
+                }
+            }
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Info("当前版本为:  " + CommonStrings.VersionTag + "\r\n\r\n无需更新.", "检查更新");
+                });
+                CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
+            }
+        }
+
+        private void DownloadFilesSub(object VerChk)
+        {
+            var path = Directory.GetCurrentDirectory();
+            try
+            {
+                DownloadFile(CommonStrings.ExeUpdateUrl, path + "/Osakabehime(Update " + VerChk + ").exe");
+                CommonStrings.NewerVersion = VerChk.ToString();
+            }
+            catch (Exception e)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show(
+                        Application.Current.MainWindow, "写入文件异常.\r\n" + e, "异常", MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                });
+                CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
+                throw;
+            }
+        }
+
+        public void DownloadFile(string url, string filePath)
+        {
+            var Downloads = new WebClient();
+            CommonStrings.StartTime = DateTime.Now;
+            progressbar1.Dispatcher.Invoke(() =>
+            {
+                progressbar1.Visibility = Visibility.Visible;
+                progressbar1.Value = 0;
+            });
+            updatestatus2.Dispatcher.Invoke(() => { updatestatus2.Text = ""; });
+            Downloads.DownloadProgressChanged += OnDownloadProgressChanged;
+            Downloads.DownloadFileCompleted += OnDownloadFileCompleted;
+            Downloads.DownloadFileAsync(new Uri(url), filePath);
+        }
+
+        private void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
+        {
+            var path = Directory.GetCurrentDirectory();
+            Dispatcher.Invoke(() =>
+            {
+                CommonStrings.SuperMsgBoxRes = MessageBox.Show(
+                    Application.Current.MainWindow,
+                    "下载完成.下载目录为: \r\n" + path + "\\Osakabehime(Update " +
+                    CommonStrings.NewerVersion +
+                    ").exe\r\n\r\n请自行替换文件.\r\n\r\n您是否要关闭当前版本的程序?", "检查更新", MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+            });
+            if (CommonStrings.SuperMsgBoxRes == MessageBoxResult.Yes)
+                Dispatcher.Invoke(Close);
+            CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
+            progressbar1.Dispatcher.Invoke(() =>
+            {
+                progressbar1.Visibility = Visibility.Hidden;
+                progressbar1.Value = 0;
+            });
+            updatestatus2.Dispatcher.Invoke(() => { updatestatus2.Text = ""; });
+        }
+
+        private void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        {
+            progressbar1.Dispatcher.Invoke(() => { progressbar1.Value = e.ProgressPercentage; });
+            var s = (DateTime.Now - CommonStrings.StartTime).TotalSeconds;
+            var sd = HttpRequest.ReadableFilesize(e.BytesReceived / s);
+            updatestatus2.Dispatcher.Invoke(() =>
+            {
+                updatestatus2.Text = "下载速度: " + sd + "/s" + ", 已下载: " +
+                                     HttpRequest.ReadableFilesize(e.BytesReceived) + " / 总计: " +
+                                     HttpRequest.ReadableFilesize(e.TotalBytesToReceive);
+            });
+        }
+
+        private void CheckUpdateThread(object sender, RoutedEventArgs e)
+        {
+            CheckUpdate.IsEnabled = false;
+            var VCE = new Task(VersionCheckEvent);
+            VCE.Start();
         }
     }
 }

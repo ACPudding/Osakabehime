@@ -1,11 +1,15 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 
 namespace Osakabehime.Properties
 {
-    class CommonStrings
+    internal class CommonStrings
     {
-        public static string Version = "版本号:  v0.9.5_b";
-        public static string VersionTag = "v0.9.5_b";
+        public static string Version = "版本号:  v1.0.0";
+        public static string VersionTag = "v1.0.0";
         public static MessageBoxResult SuperMsgBoxRes;
+        public static string ExeUpdateUrl = "";
+        public static string NewerVersion = "";
+        public static DateTime StartTime;
     }
 }

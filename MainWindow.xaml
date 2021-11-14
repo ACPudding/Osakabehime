@@ -73,9 +73,10 @@
                     <RadioButton x:Name="FourThread" Content="4线程" HorizontalAlignment="Left" Margin="74,257,0,0"
                                  VerticalAlignment="Top" GroupName="DownloadThread" ToolTip="不论文件是否已经存在，执行全量下载." />
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
-                        x:Name="ResetDownloadStatus" Content="重置进度" HorizontalAlignment="Left"
-                        Margin="315,349,0,0" VerticalAlignment="Top" Width="90"
-                        Foreground="#FFFFFFFF" ToolTip="[重要]请确定右侧进度条已不再走动之后再点击本按钮刷新界面." Visibility="Collapsed" Click="ClearSuper1" >
+                            x:Name="ResetDownloadStatus" Content="重置进度" HorizontalAlignment="Left"
+                            Margin="315,349,0,0" VerticalAlignment="Top" Width="90"
+                            Foreground="#FFFFFFFF" ToolTip="[重要]请确定右侧进度条已不再走动之后再点击本按钮刷新界面." Visibility="Collapsed"
+                            Click="ClearSuper1">
                         <Button.Background>
                             <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
                                 <GradientStop Color="#FF326CF3" Offset="0" />
@@ -93,7 +94,8 @@
                                Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
                                FontFamily="Source Han Sans SC" />
                     <ProgressBar x:Name="Decrypt_Progress" HorizontalAlignment="Left" Height="20" Margin="410,359,0,0"
-                                 VerticalAlignment="Top" Width="374" Maximum="100000" SmallChange="0.01" LargeChange="5"/>
+                                 VerticalAlignment="Top" Width="374" Maximum="100000" SmallChange="0.01"
+                                 LargeChange="5" />
                     <ListBox x:Name="Decrypt_Status" HorizontalAlignment="Left" Height="334" Margin="410,20,0,0"
                              VerticalAlignment="Top" Width="374" Foreground="#FF737373"
                              FontSize="10.5">
@@ -104,7 +106,7 @@
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                             x:Name="Start_Decrypt" Content="选择目录" HorizontalAlignment="Left"
                             Margin="119,349,0,0" VerticalAlignment="Top" Width="157"
-                            Foreground="#FFFFFFFF" Click ="AssetDecrypt">
+                            Foreground="#FFFFFFFF" Click="AssetDecrypt">
                         <Button.Background>
                             <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
                                 <GradientStop Color="#FF326CF3" Offset="0" />
@@ -117,10 +119,10 @@
                                HorizontalAlignment="Left" Height="29" Margin="10,61,0,0"
                                VerticalAlignment="Top"
                                Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
-                    <RadioButton x:Name="RenameYes" Content="是" HorizontalAlignment="Left" Margin="74,95,0,0"
+                    <RadioButton x:Name="RenameYes" Content="是" HorizontalAlignment="Left" Margin="74,90,0,0"
                                  VerticalAlignment="Top" GroupName="ifRename"
-                                 IsChecked="True"/>
-                    <RadioButton x:Name="RenameNo" Content="否" HorizontalAlignment="Left" Margin="198,95,0,0"
+                                 IsChecked="True" />
+                    <RadioButton x:Name="RenameNo" Content="否" HorizontalAlignment="Left" Margin="198,90,0,0"
                                  VerticalAlignment="Top" GroupName="ifRename" />
                     <TextBlock Text="状态:"
                                HorizontalAlignment="Left" Height="20" Margin="410,0,0,0"
@@ -128,28 +130,28 @@
                                Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
                                FontFamily="Source Han Sans SC" />
                     <TextBlock Text="选择资源对应的区服(key选择):"
-                        HorizontalAlignment="Left" Height="29" Margin="10,121,0,0"
-                        VerticalAlignment="Top"
-                        Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
-                    <RadioButton x:Name="SrvJP" Content="JP" HorizontalAlignment="Left" Margin="74,155,0,0"
-                        VerticalAlignment="Top" GroupName="DServer"
-                        IsChecked="True"/>
-                    <RadioButton x:Name="SrvCN" Content="CN" HorizontalAlignment="Left" Margin="74,178,0,0"
-                        VerticalAlignment="Top" GroupName="DServer" />
-                    <RadioButton x:Name="SrvEN" Content="EN" HorizontalAlignment="Left" Margin="74,201,0,0"
-                        VerticalAlignment="Top" GroupName="DServer" />
+                               HorizontalAlignment="Left" Height="29" Margin="10,121,0,0"
+                               VerticalAlignment="Top"
+                               Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
+                    <RadioButton x:Name="SrvJP" Content="JP" HorizontalAlignment="Left" Margin="74,145,0,0"
+                                 VerticalAlignment="Top" GroupName="DServer"
+                                 IsChecked="True" />
+                    <RadioButton x:Name="SrvCN" Content="CN" HorizontalAlignment="Left" Margin="74,168,0,0"
+                                 VerticalAlignment="Top" GroupName="DServer" />
+                    <RadioButton x:Name="SrvEN" Content="EN" HorizontalAlignment="Left" Margin="74,191,0,0"
+                                 VerticalAlignment="Top" GroupName="DServer" />
                     <TextBlock Text="是否删除原文件只保留解密文件?"
-                        HorizontalAlignment="Left" Height="29" Margin="10,223,0,0"
-                        VerticalAlignment="Top"
-                        Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
-                    <RadioButton x:Name="DelYes" Content="是" HorizontalAlignment="Left" Margin="74,257,0,0"
-                        VerticalAlignment="Top" GroupName="ifDelFile"
-                        IsChecked="True"/>
-                    <RadioButton x:Name="DelNo" Content="否" HorizontalAlignment="Left" Margin="198,257,0,0"
-                        VerticalAlignment="Top" GroupName="ifDelFile" />
+                               HorizontalAlignment="Left" Height="29" Margin="10,223,0,0"
+                               VerticalAlignment="Top"
+                               Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
+                    <RadioButton x:Name="DelYes" Content="是" HorizontalAlignment="Left" Margin="74,252,0,0"
+                                 VerticalAlignment="Top" GroupName="ifDelFile"
+                                 IsChecked="True" />
+                    <RadioButton x:Name="DelNo" Content="否" HorizontalAlignment="Left" Margin="198,252,0,0"
+                                 VerticalAlignment="Top" GroupName="ifDelFile" />
                 </Grid>
             </TabItem>
-            <TabItem Header="音视频解密" >
+            <TabItem Header="音视频解密">
                 <Grid>
                     <TextBlock Text="本功能可帮助进行音视频文件的解密.&#xA;选择文件夹后会自动打开FGOAudioDecoder进行后续操作."
                                HorizontalAlignment="Left" Height="41" Margin="10,5,0,0"
@@ -163,7 +165,7 @@
                                Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
                     <RadioButton x:Name="SelAudio" Content="音频" HorizontalAlignment="Left" Margin="74,95,0,0"
                                  VerticalAlignment="Top" GroupName="SelectAM"
-                                 IsChecked="True"/>
+                                 IsChecked="True" />
                     <RadioButton x:Name="SelMovie" Content="视频" HorizontalAlignment="Left" Margin="198,95,0,0"
                                  VerticalAlignment="Top" GroupName="SelectAM" />
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
@@ -227,7 +229,7 @@
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                             x:Name="CheckUpdate" Content="检查更新" HorizontalAlignment="Left" Margin="365,339,0,0"
                             VerticalAlignment="Top" Width="75"
-                            Foreground="#FFFFFFFF">
+                            Foreground="#FFFFFFFF" Click="CheckUpdateThread">
                         <Button.Background>
                             <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
                                 <GradientStop Color="#FF326CF3" Offset="0" />

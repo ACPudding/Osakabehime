@@ -2,7 +2,6 @@
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Windows;
 using Newtonsoft.Json.Linq;
 
 namespace Osakabehime
@@ -65,76 +64,9 @@ namespace Osakabehime
             }
         }
 
-        public static Stream GetXlsx()
-        {
-            var xlsxurl1 = "https://gitee.com/ACPudding/ACPudding.github.io/raw/master/fileserv/SvtInfo.xlsx";
-            var xlsxurl2 =
-                "https://raw.githubusercontent.com/ACPudding/ACPudding.github.io/master/fileserv/SvtInfo.xlsx";
-            var httpWebRequest =
-                (HttpWebRequest) WebRequest.Create(xlsxurl2);
-            httpWebRequest.Method = "GET";
-            try
-            {
-                var response = httpWebRequest.GetResponse();
-                var stream = response.GetResponseStream();
-                return stream;
-            }
-            catch (Exception)
-            {
-                httpWebRequest =
-                    (HttpWebRequest) WebRequest.Create(xlsxurl1);
-                httpWebRequest.Method = "GET";
-                try
-                {
-                    var response2 = httpWebRequest.GetResponse();
-                    var stream2 = response2.GetResponseStream();
-                    return stream2;
-                }
-                catch (Exception exception)
-                {
-                    MessageBox.Show("网络连接异常,请检查网络连接并重试.\r\n" + exception, "网络连接异常", MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-                    throw;
-                }
-            }
-        }
-
-        public static string GetList(string ALink, string Blink)
-        {
-            var httpWebRequest =
-                (HttpWebRequest) WebRequest.Create(ALink);
-            httpWebRequest.Method = "GET";
-            try
-            {
-                var response = httpWebRequest.GetResponse();
-                var stream = response.GetResponseStream();
-                var reader = new StreamReader(stream, Encoding.UTF8);
-                return reader.ReadToEnd();
-            }
-            catch (Exception)
-            {
-                httpWebRequest =
-                    (HttpWebRequest) WebRequest.Create(Blink);
-                httpWebRequest.Method = "GET";
-                try
-                {
-                    var response2 = httpWebRequest.GetResponse();
-                    var stream2 = response2.GetResponseStream();
-                    var reader2 = new StreamReader(stream2, Encoding.UTF8);
-                    return reader2.ReadToEnd();
-                }
-                catch (Exception exception)
-                {
-                    MessageBox.Show("网络连接异常,请检查网络连接并重试.\r\n" + exception, "网络连接异常", MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-                    throw;
-                }
-            }
-        }
-
         public static string GetApplicationUpdateJson()
         {
-            var api = "https://api.github.com/repos/ACPudding/Altera/releases/latest";
+            var api = "https://api.github.com/repos/ACPudding/Osakabehime/releases/latest";
             ServicePointManager.SecurityProtocol = (SecurityProtocolType) 3072; //TLS1.2=3702
             var result = "";
             var req = WebRequest.Create(api) as HttpWebRequest;
