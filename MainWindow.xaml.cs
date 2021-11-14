@@ -313,7 +313,6 @@ namespace Osakabehime
         private async Task DHASub(IReadOnlyCollection<int> DownloadLine)
         {
             var ASLine = File.ReadAllLines(AssetStorageFilePath);
-            var ASLineCount = ASLine.Length;
             var DataTimeStringINFO = ASLine[1].Split(',');
             var DataVersion = DataTimeStringINFO[2];
             var DownloadParallel = 1;
@@ -347,7 +346,8 @@ namespace Osakabehime
                     var tmpname = tmp[DownloadItem, 4].Replace('/', '@') + ".unity3d";
                     var downloadName = CatAndMouseGame.GetShaName(tmpname);
                     var downloadfile = downloadName;
-                    var writePath = AssetsFolder.FullName + tmpname.Replace('@', '\\').Replace("/", "\\");
+                    var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
+                                    DataVersion.Replace(":", "") + "\\" + tmpname.Replace('@', '\\').Replace("/", "\\");
                     var writeDirectory = Path.GetDirectoryName(writePath);
                     if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
                     File.Delete(writePath);
@@ -608,7 +608,8 @@ namespace Osakabehime
                     }
                     else
                     {
-                        writePath = AssetsFolder.FullName + assetName;
+                        writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
+                                    DataVersion.Replace(":", "") + "\\" + assetName;
                     }
 
                     if (File.Exists(writePath))
@@ -666,7 +667,8 @@ namespace Osakabehime
                         }
                         else
                         {
-                            writePath = AssetsFolder.FullName + audioName;
+                            writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
+                                        "@Version@" + DataVersion.Replace(":", "") + "\\" + audioName;
                         }
 
                         if (File.Exists(writePath))
@@ -725,7 +727,8 @@ namespace Osakabehime
                         }
                         else
                         {
-                            writePath = AssetsFolder.FullName + movieName;
+                            writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
+                                        "@Version@" + DataVersion.Replace(":", "") + "\\" + movieName;
                         }
 
                         if (File.Exists(writePath))
@@ -821,6 +824,7 @@ namespace Osakabehime
         {
             ResetDownloadStatus.Visibility = Visibility.Collapsed;
             Start.IsEnabled = true;
+            Download_Progress.Value = 0;
             Download_Status.Items.Clear();
         }
 

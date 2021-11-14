@@ -69,9 +69,9 @@
                                  VerticalAlignment="Top" GroupName="DownloadThread"
                                  IsChecked="True" />
                     <RadioButton x:Name="TwoThread" Content="2线程" HorizontalAlignment="Left" Margin="74,234,0,0"
-                                 VerticalAlignment="Top" GroupName="DownloadThread" ToolTip="根据文件是否有增加进行差异下载，精准度低." />
+                                 VerticalAlignment="Top" GroupName="DownloadThread" />
                     <RadioButton x:Name="FourThread" Content="4线程" HorizontalAlignment="Left" Margin="74,257,0,0"
-                                 VerticalAlignment="Top" GroupName="DownloadThread" ToolTip="不论文件是否已经存在，执行全量下载." />
+                                 VerticalAlignment="Top" GroupName="DownloadThread" />
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                             x:Name="ResetDownloadStatus" Content="重置进度" HorizontalAlignment="Left"
                             Margin="315,349,0,0" VerticalAlignment="Top" Width="90"
