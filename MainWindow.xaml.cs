@@ -564,13 +564,39 @@ namespace Osakabehime
                     Download_Progress.Value += ProgressBarValueAdd;
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _ = Dispatcher.InvokeAsync(() =>
                 {
                     Download_Status.Items.Insert(0, "下载错误: " + names);
-                    Download_Status.Items.Insert(0, ex);
+                    Download_Status.Items.Insert(0, "5秒后重试: " + names);
                 });
+                Thread.Sleep(5000);
+                try
+                {
+                    var raw = HttpRequest
+                        .Get($"https://cdn.data.fate-go.jp/AssetStorages/{assetBundleFolder}Android/{filename}")
+                        .ToBinary();
+                    var output = writePath.Contains("unity3d") ? CatAndMouseGame.MouseGame4(raw) : raw;
+                    using (var fs = new FileStream(writePath, FileMode.OpenOrCreate, FileAccess.Write))
+                    {
+                        fs.Write(output, 0, output.Length);
+                    }
+
+                    _ = Dispatcher.InvokeAsync(() =>
+                    {
+                        Download_Status.Items.Insert(0, "重试: " + names);
+                        Download_Progress.Value += ProgressBarValueAdd;
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _ = Dispatcher.InvokeAsync(() =>
+                    {
+                        Download_Status.Items.Insert(0, "下载错误: " + names);
+                        Download_Status.Items.Insert(0, ex);
+                    });
+                }
             }
         }
 
