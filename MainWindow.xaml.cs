@@ -1036,12 +1036,30 @@ namespace Osakabehime
             });
             WaitingList.Clear();
             Thread.Sleep(1000);
+            var AlphaBackName = "";
+            Dispatcher.Invoke(() =>
+            {
+                if (Sel_a.IsChecked == true) AlphaBackName = "a.png";
+                if (Sel_Alpha.IsChecked == true) AlphaBackName = "_alpha.png";
+            });
             foreach (var file in TrueDirectory.GetFiles("*.png"))
             {
-                if (!File.Exists(file.FullName.Substring(0, file.FullName.Length - 4) + "a.png")) continue;
+                if (!File.Exists(file.FullName.Substring(0, file.FullName.Length - 4) + AlphaBackName)) continue;
                 Dispatcher.Invoke(() => { Alpha_Status.Items.Insert(0, "可用: " + file.Name); });
                 FileCounts++;
                 WaitingList.Add(file.FullName);
+            }
+
+            if (FileCounts == 0)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Error("本文件夹中找不到符合条件的png文件.", "温馨提示:");
+                    Start_Alpha.IsEnabled = true;
+                    Alpha_Status.Items.Clear();
+                    Alpha_Progress.Value = 0.0;
+                });
+                return;
             }
 
             if (!Directory.Exists(MergedDirectory.FullName)) MergedDirectory.Create();
@@ -1056,32 +1074,44 @@ namespace Osakabehime
             await Task.Run(() =>
             {
                 foreach (var fileneeded in WaitingArray)
-                {
-                    var foreground = new Bitmap(fileneeded);
-                    var alpha = new Bitmap(fileneeded.Substring(0, fileneeded.Length - 4) + "a.png");
-                    var DisplayName = new FileInfo(fileneeded);
-                    Dispatcher.Invoke(() =>
+                    try
                     {
-                        Alpha_Status.Items.Insert(0, "开始合成: " + DisplayName.Name);
-                        Alpha_Progress.Value += Add_Value;
-                    });
-                    for (var i = 0; i < foreground.Width; i++)
-                    for (var j = 0; j < foreground.Height; j++)
-                    {
-                        var forec = foreground.GetPixel(i, j);
-                        var alphac = alpha.GetPixel(i, j);
-                        foreground.SetPixel(i, j, Color.FromArgb(alphac.R, forec.R, forec.G, forec.B));
-                    }
+                        var foreground = new Bitmap(fileneeded);
+                        var alpha = new Bitmap(fileneeded.Substring(0, fileneeded.Length - 4) + AlphaBackName);
+                        var DisplayName = new FileInfo(fileneeded);
+                        Dispatcher.Invoke(() =>
+                        {
+                            Alpha_Status.Items.Insert(0, "开始合成: " + DisplayName.Name);
+                            Alpha_Progress.Value += Add_Value;
+                        });
+                        for (var i = 0; i < foreground.Width; i++)
+                        for (var j = 0; j < foreground.Height; j++)
+                        {
+                            var forec = foreground.GetPixel(i, j);
+                            var alphac = alpha.GetPixel(i, j);
+                            foreground.SetPixel(i, j, Color.FromArgb(alphac.R, forec.R, forec.G, forec.B));
+                        }
 
-                    Dispatcher.Invoke(() =>
+                        Dispatcher.Invoke(() =>
+                        {
+                            Alpha_Status.Items.Insert(0, "合成结束: " + DisplayName.Name);
+                            Alpha_Progress.Value += Add_Value;
+                        });
+                        foreground.Save(
+                            MergedDirectory.FullName + @"\\" +
+                            DisplayName.Name.Substring(0, DisplayName.Name.Length - 4) +
+                            "_merged.png", ImageFormat.Png);
+                        Thread.Sleep(500);
+                    }
+                    catch (Exception e)
                     {
-                        Alpha_Status.Items.Insert(0, "合成结束: " + DisplayName.Name);
-                        Alpha_Progress.Value += Add_Value;
-                    });
-                    foreground.Save(
-                        MergedDirectory.FullName + @"\\" + DisplayName.Name.Substring(0, DisplayName.Name.Length - 4) +
-                        "_merged.png", ImageFormat.Png);
-                }
+                        Dispatcher.Invoke(() =>
+                        {
+                            Alpha_Status.Items.Insert(0, "错误: " + e);
+                            Alpha_Progress.Value += Add_Value;
+                        });
+                        Thread.Sleep(500);
+                    }
             });
             Dispatcher.Invoke(() => { Alpha_Status.Items.Insert(0, "合成工作全部完成."); });
             Thread.Sleep(3000);

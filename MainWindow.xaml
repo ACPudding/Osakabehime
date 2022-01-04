@@ -193,6 +193,16 @@
                                VerticalAlignment="Top"
                                Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
                                FontFamily="Source Han Sans SC" />
+                    <hc:Divider Margin="10,51,388.6,322.8" />
+                    <TextBlock Text="选择Alpha后缀:"
+                               HorizontalAlignment="Left" Height="29" Margin="10,61,0,0"
+                               VerticalAlignment="Top"
+                               Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
+                    <RadioButton x:Name="Sel_a" Content="*a.png (CharaFigure)" HorizontalAlignment="Left" Margin="119,88,0,0"
+                                 VerticalAlignment="Top" GroupName="AlphaMode"
+                                 IsChecked="True" />
+                    <RadioButton x:Name="Sel_Alpha" Content="*__alpha.png (Others)" HorizontalAlignment="Left" Margin="119,111,0,0"
+                                 VerticalAlignment="Top" GroupName="AlphaMode" />
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                             x:Name="Start_Alpha" Content="选择目录" HorizontalAlignment="Left"
                             Margin="119,349,0,0" VerticalAlignment="Top" Width="157"
