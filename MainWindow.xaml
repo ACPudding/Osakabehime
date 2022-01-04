@@ -181,7 +181,42 @@
                     </Button>
                 </Grid>
             </TabItem>
-            <TabItem Header="关于" Margin="512.8,0,-512.8,0.4">
+            <TabItem Header="立绘Alpha合成">
+                <Grid>
+                    <TextBlock Text="本功能可帮助对解包的Png文件进行Alpha通道合成操作.&#xA;选择文件夹后会自动判断后缀名*.png和*a.png两者进行操作."
+                               HorizontalAlignment="Left" Height="41" Margin="10,5,0,0"
+                               VerticalAlignment="Top"
+                               Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
+                               FontFamily="Source Han Sans SC" />
+                    <TextBlock Text="状态:"
+                               HorizontalAlignment="Left" Height="20" Margin="410,0,0,0"
+                               VerticalAlignment="Top"
+                               Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
+                               FontFamily="Source Han Sans SC" />
+                    <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
+                            x:Name="Start_Alpha" Content="选择目录" HorizontalAlignment="Left"
+                            Margin="119,349,0,0" VerticalAlignment="Top" Width="157"
+                            Foreground="#FFFFFFFF" Click="AlphaImage">
+                        <Button.Background>
+                            <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
+                                <GradientStop Color="#FF326CF3" Offset="0" />
+                                <GradientStop Color="#FF7BA2FF" Offset="1" />
+                            </LinearGradientBrush>
+                        </Button.Background>
+                    </Button>
+                    <ProgressBar x:Name="Alpha_Progress" HorizontalAlignment="Left" Height="20" Margin="410,359,0,0"
+                                 VerticalAlignment="Top" Width="374" Maximum="100000" SmallChange="0.01"
+                                 LargeChange="5" />
+                    <ListBox x:Name="Alpha_Status" HorizontalAlignment="Left" Height="334" Margin="410,20,0,0"
+                             VerticalAlignment="Top" Width="374" Foreground="#FF737373"
+                             FontSize="10.5">
+                        <ListBox.Background>
+                            <SolidColorBrush Color="White" Opacity="0.4" />
+                        </ListBox.Background>
+                    </ListBox>
+                </Grid>
+            </TabItem>
+            <TabItem Header="关于" Margin="412.8,0,-412.8,0.4">
                 <Grid>
                     <Image Margin="566,10,9.6,228.8" Source="Assets/NoXing.jpg" />
                     <TextBlock Text="Osakabehime" HorizontalAlignment="Left" Height="40"
