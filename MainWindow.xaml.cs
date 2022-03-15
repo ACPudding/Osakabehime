@@ -6,6 +6,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -1122,6 +1124,155 @@ namespace Osakabehime
                 Start_Alpha.IsEnabled = true;
             });
             Process.Start(MergedDirectory.FullName);
+        }
+
+
+        private void ExportImage(string beh, string src)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Icon_Status.Items.Clear();
+            });
+            var filePathOnly = Path.GetDirectoryName(src);
+            var TrueDirectory = new DirectoryInfo(filePathOnly);
+            var CutDirectory = new DirectoryInfo(TrueDirectory + @"\Cut");
+            if (!Directory.Exists(CutDirectory.FullName)) CutDirectory.Create();
+            var res = File.ReadAllText(beh);
+            var imgSrc = Image.FromFile(src);
+            var MonoJson = JObject.Parse(res);
+            var Sprites = (JArray) JsonConvert.DeserializeObject(MonoJson["mSprites"].ToString());
+            foreach (var cuttmp in Sprites)
+            {
+                var tmp = JObject.Parse(cuttmp.ToString());
+                Image ss;
+                try
+                {
+                    ss = KiCut(imgSrc, int.Parse(tmp["x"].ToString()), int.Parse(tmp["y"].ToString()), int.Parse(tmp["width"].ToString()),
+                        int.Parse(tmp["height"].ToString()));
+                }
+                catch (Exception e)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        Icon_Status.Items.Insert(0, e);
+                        Icon_Status.Items.Insert(0, "错误:" + tmp["name"] + ".png");
+                    });
+                    continue;
+                }
+                Dispatcher.Invoke(() =>
+                {
+                    Icon_Status.Items.Insert(0, "正在切割:" + tmp["name"] + ".png");
+                });
+                ss.Save(CutDirectory.FullName + @"\\" + tmp["name"] + ".png", ImageFormat.Png);
+                Dispatcher.Invoke(() =>
+                {
+                    Icon_Status.Items.Insert(0, "切割完成:" + tmp["name"] + ".png");
+                });
+            }
+            Dispatcher.Invoke(() => { Icon_Status.Items.Insert(0, "合成工作全部完成."); });
+            Thread.Sleep(3000);
+            Dispatcher.Invoke(() =>
+            {
+                Icon_Status.Items.Clear();
+                Start_IconCutter.IsEnabled = true;
+            });
+            GC.Collect();
+        }
+
+        public static Image KiCut(Image b, int StartX, int StartY, int iWidth, int iHeight)
+        {
+            if (b == null)
+            {
+                return null;
+            }
+
+            int w = b.Width;
+            int h = b.Height;
+
+            if (StartX >= w || StartY >= h)
+            {
+                return null;
+            }
+
+            if (StartX + iWidth > w)
+            {
+                iWidth = w - StartX;
+            }
+
+            if (StartY + iHeight > h)
+            {
+                iHeight = h - StartY;
+            }
+
+            try
+            {
+                var bmpOut = new Bitmap(iWidth, iHeight);
+
+                Graphics g = Graphics.FromImage(bmpOut);
+                g.DrawImage(b, new Rectangle(0, 0, iWidth, iHeight), new Rectangle(StartX, StartY, iWidth, iHeight), GraphicsUnit.Pixel);
+                g.Dispose();
+
+                return bmpOut;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void Start_IconCutter_OnClick(object sender, RoutedEventArgs e)
+        {
+            var png = "";
+            var mono = "";
+            Dispatcher.Invoke(() =>
+            {
+                png = Icon_Cutter_pngpickerdisplay.Text;
+                mono = Icon_Cutter_monopickerdisplay.Text;
+                Start_IconCutter.IsEnabled = false;
+            });
+            var Cut = new Task(() =>
+            {
+                ExportImage(mono, png);
+            });
+            Cut.Start();
+        }
+
+        private void Select_Png(object sender, RoutedEventArgs e)
+        {
+            var inputdialog = new CommonOpenFileDialog { Title = "选择需要切割的png文件.", Multiselect = false };
+            inputdialog.Filters.Add(new CommonFileDialogFilter("png图片", "png"));
+            var resultinput = inputdialog.ShowDialog();
+            var input = "";
+            if (resultinput == CommonFileDialogResult.Ok) input = inputdialog.FileName;
+            if (input == "")
+            {
+                MessageBox.Error("错误的文件.", "温馨提示:");
+            }
+            else
+            {
+                Icon_Cutter_pngpickerdisplay.Text = input;
+            }
+            if (Icon_Cutter_pngpickerdisplay.Text != "" && Icon_Cutter_monopickerdisplay.Text != "")
+                Start_IconCutter.IsEnabled = true;
+        }
+
+        private void Select_Mono(object sender, RoutedEventArgs e)
+        {
+            var inputdialog = new CommonOpenFileDialog { Title = "选择对应的MonoBehavior文件.", Multiselect = false };
+            inputdialog.Filters.Add(new CommonFileDialogFilter("MonoBehavior文件", "json,txt"));
+            var resultinput = inputdialog.ShowDialog();
+            var input = "";
+            if (resultinput == CommonFileDialogResult.Ok) input = inputdialog.FileName;
+            if (input == "")
+            {
+                MessageBox.Error("错误的文件.", "温馨提示:");
+            }
+            else
+            {
+                Icon_Cutter_monopickerdisplay.Text = input;
+            }
+            if (Icon_Cutter_pngpickerdisplay.Text != "" && Icon_Cutter_monopickerdisplay.Text != "")
+                Start_IconCutter.IsEnabled = true;
         }
     }
 }

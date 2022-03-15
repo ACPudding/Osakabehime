@@ -198,10 +198,12 @@
                                HorizontalAlignment="Left" Height="29" Margin="10,61,0,0"
                                VerticalAlignment="Top"
                                Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
-                    <RadioButton x:Name="Sel_a" Content="*a.png (CharaFigure)" HorizontalAlignment="Left" Margin="119,88,0,0"
+                    <RadioButton x:Name="Sel_a" Content="*a.png (CharaFigure)" HorizontalAlignment="Left"
+                                 Margin="119,88,0,0"
                                  VerticalAlignment="Top" GroupName="AlphaMode"
                                  IsChecked="True" />
-                    <RadioButton x:Name="Sel_Alpha" Content="*__alpha.png (Others)" HorizontalAlignment="Left" Margin="119,111,0,0"
+                    <RadioButton x:Name="Sel_Alpha" Content="*__alpha.png (Others)" HorizontalAlignment="Left"
+                                 Margin="119,111,0,0"
                                  VerticalAlignment="Top" GroupName="AlphaMode" />
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                             x:Name="Start_Alpha" Content="选择目录" HorizontalAlignment="Left"
@@ -226,7 +228,58 @@
                     </ListBox>
                 </Grid>
             </TabItem>
-            <TabItem Header="关于" Margin="412.8,0,-412.8,0.4">
+            <TabItem Header="IconCutter">
+                <Grid>
+                    <TextBlock Text="本功能可帮助对解包的图标文件(png)使用MonoBehavior文件&#xA;进行切割操作.选择文件后会自动进行切割."
+                               HorizontalAlignment="Left" Height="41" Margin="10,5,0,0"
+                               VerticalAlignment="Top"
+                               Width="395" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
+                               FontFamily="Source Han Sans SC" />
+                    <TextBlock Text="选择需要切割的Png:"
+                               HorizontalAlignment="Left" Height="29" Margin="10,66,0,0"
+                               VerticalAlignment="Top"
+                               Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
+                    <TextBlock Text="状态:"
+                               HorizontalAlignment="Left" Height="20" Margin="410,0,0,0"
+                               VerticalAlignment="Top"
+                               Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
+                               FontFamily="Source Han Sans SC" />
+                    <hc:Divider Margin="10,51,388.6,322.8" />
+                    <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
+                            x:Name="Start_IconCutter" Content="开始切割" HorizontalAlignment="Left"
+                            Margin="119,349,0,0" VerticalAlignment="Top" Width="157"
+                            Foreground="#FFFFFFFF" Click="Start_IconCutter_OnClick" IsEnabled="False">
+                        <Button.Background>
+                            <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
+                                <GradientStop Color="#FF326CF3" Offset="0" />
+                                <GradientStop Color="#FF7BA2FF" Offset="1" />
+                            </LinearGradientBrush>
+                        </Button.Background>
+                    </Button>
+                    <ListBox x:Name="Icon_Status" HorizontalAlignment="Left" Height="359" Margin="410,20,0,0"
+                             VerticalAlignment="Top" Width="374" Foreground="#FF737373"
+                             FontSize="10.5">
+                        <ListBox.Background>
+                            <SolidColorBrush Color="White" Opacity="0.4" />
+                        </ListBox.Background>
+                    </ListBox>
+                    <TextBox x:Name="Icon_Cutter_pngpickerdisplay" HorizontalAlignment="Left" Height="23"
+                             Margin="10,95,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="355"
+                             IsReadOnly="True" IsUndoEnabled="False" />
+                    <Button x:Name="Icon_Cutter_pngpickerbtn" Content="..." Margin="370,95,388.6,263.8"
+                            hc:BorderElement.CornerRadius="5" Width="35" Click="Select_Png" />
+                    <TextBlock Text="选择对应的MonoBehavior:"
+                               HorizontalAlignment="Left" Height="29" Margin="10,137,0,0"
+                               VerticalAlignment="Top"
+                               Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
+                    <TextBox x:Name="Icon_Cutter_monopickerdisplay" HorizontalAlignment="Left" Height="23"
+                             Margin="10,167,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="355"
+                             IsReadOnly="True" IsUndoEnabled="False" />
+                    <Button x:Name="Icon_Cutter_monopickerbtn" Content="..." Margin="370,167,388.6,191.8"
+                            hc:BorderElement.CornerRadius="5" Width="35" Click="Select_Mono" />
+                </Grid>
+            </TabItem>
+            <TabItem Header="关于" Margin="334.4,0,-334.4,0.4">
                 <Grid>
                     <Image Margin="566,10,9.6,228.8" Source="Assets/NoXing.jpg" />
                     <TextBlock Text="Osakabehime" HorizontalAlignment="Left" Height="40"
