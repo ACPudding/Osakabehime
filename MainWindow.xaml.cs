@@ -6,8 +6,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -43,13 +41,12 @@ namespace Osakabehime
         {
             Start_DecryptMedia.IsEnabled = false;
             var path = Directory.GetCurrentDirectory();
-            var inputdialog = new CommonOpenFileDialog {IsFolderPicker = true, Title = "需要解密的资源文件目录"};
+            var inputdialog = new CommonOpenFileDialog { IsFolderPicker = true, Title = "需要解密的资源文件目录" };
             var resultinput = inputdialog.ShowDialog();
             var inputfolder = "";
             if (resultinput == CommonFileDialogResult.Ok) inputfolder = inputdialog.FileName;
             if (inputfolder == "")
             {
-                MessageBox.Error("错误的文件夹.", "温馨提示:");
                 Start_DecryptMedia.IsEnabled = true;
                 return;
             }
@@ -211,7 +208,7 @@ namespace Osakabehime
                     Dispatcher.Invoke(() => { Decrypt_Progress.Value += progressValuebin; });
                     if (isDeleteFile)
                         File.Delete(file.FullName);
-                    Thread.Sleep(10);
+                    Thread.Sleep(50);
                 }
                 catch (Exception)
                 {
@@ -235,14 +232,14 @@ namespace Osakabehime
             Thread.Sleep(1500);
             Dispatcher.Invoke(() => { Decrypt_Progress.Value = 0; });
             var AssetJsonName = File.ReadAllText(decrypt.FullName + @"\AssetName.json");
-            var AssetJsonNameArray = (JArray) JsonConvert.DeserializeObject(AssetJsonName);
+            var AssetJsonNameArray = (JArray)JsonConvert.DeserializeObject(AssetJsonName);
             var binCountall = Directory.GetFiles(renamedAssets.FullName).Length;
             progressValueall = Convert.ToDouble(100000 / binCountall);
             Parallel.ForEach(renamedAssets.GetFiles("*.bin"), file =>
             {
                 Parallel.ForEach(AssetJsonNameArray, FileNametmp =>
                 {
-                    if (((JObject) FileNametmp)["fileName"].ToString() != file.Name) return;
+                    if (((JObject)FileNametmp)["fileName"].ToString() != file.Name) return;
                     var FileNameObjtmp = JObject.Parse(FileNametmp.ToString());
                     var FileAssetNametmp = FileNameObjtmp["assetName"].ToString();
                     RemindLog = "重命名: " + file.Name + " → \r\n" + FileAssetNametmp + "\n";
@@ -259,7 +256,7 @@ namespace Osakabehime
 
         private async void AssetDecrypt(object sender, RoutedEventArgs e)
         {
-            var inputdialog = new CommonOpenFileDialog {IsFolderPicker = true, Title = "需要解密的资源文件目录"};
+            var inputdialog = new CommonOpenFileDialog { IsFolderPicker = true, Title = "需要解密的资源文件目录" };
             var resultinput = inputdialog.ShowDialog();
             var inputfolder = "";
             if (resultinput == CommonFileDialogResult.Ok) inputfolder = inputdialog.FileName;
@@ -292,7 +289,7 @@ namespace Osakabehime
             }
             else if (!File.Exists(AssetStorageFilePath))
             {
-                MessageBox.Error("未找到AssetStorage.txt文件,请通过Altera进行下载.", "错误");
+                MessageBox.Error("未找到AssetStorage.txt文件或上一次的AssetStorage.txt文件,请通过Altera进行下载.", "错误");
                 Dispatcher.Invoke(() => { Start.IsEnabled = true; });
                 return;
             }
@@ -325,7 +322,7 @@ namespace Osakabehime
                 if (TwoThread.IsChecked == true) DownloadParallel = 2;
                 if (FourThread.IsChecked == true) DownloadParallel = 4;
             });
-            var paralleloptions = new ParallelOptions {MaxDegreeOfParallelism = DownloadParallel};
+            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
             var ProgressBarValueAdd = 50000 / DownloadLine.Count;
             var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
             Parallel.ForEach(DownloadLine, paralleloptions, async DownloadItem =>
@@ -488,6 +485,17 @@ namespace Osakabehime
                 return;
             }
 
+            if (!File.Exists(AssetStorageLastFilePath))
+            {
+                MessageBox.Error("未找到以往的AssetStorage.txt文件,请通过Altera进行下载.", "错误");
+                Dispatcher.Invoke(() =>
+                {
+                    Start.IsEnabled = true;
+                    Download_Status.Items.Clear();
+                });
+                return;
+            }
+
             var n = ASLineCount / 8;
             var mod = ASLineCount % 8;
             var task1 = FindASDiffer(0, n);
@@ -619,7 +627,7 @@ namespace Osakabehime
                 if (TwoThread.IsChecked == true) DownloadParallel = 2;
                 if (FourThread.IsChecked == true) DownloadParallel = 4;
             });
-            var paralleloptions = new ParallelOptions {MaxDegreeOfParallelism = DownloadParallel};
+            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
             Parallel.ForEach(assetList, paralleloptions, asset =>
             {
                 _ = Dispatcher.InvokeAsync(async () =>
@@ -679,7 +687,7 @@ namespace Osakabehime
                 if (TwoThread.IsChecked == true) DownloadParallel = 2;
                 if (FourThread.IsChecked == true) DownloadParallel = 4;
             });
-            var paralleloptions = new ParallelOptions {MaxDegreeOfParallelism = DownloadParallel};
+            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
             _ = Dispatcher.InvokeAsync(() =>
             {
                 if (isDownloadAudio.IsChecked == true)
@@ -739,7 +747,7 @@ namespace Osakabehime
                 if (TwoThread.IsChecked == true) DownloadParallel = 2;
                 if (FourThread.IsChecked == true) DownloadParallel = 4;
             });
-            var paralleloptions = new ParallelOptions {MaxDegreeOfParallelism = DownloadParallel};
+            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
             Dispatcher.InvokeAsync(() =>
             {
                 if (isDownloadMovie.IsChecked == true)
@@ -890,7 +898,7 @@ namespace Osakabehime
                 });
                 if (CommonStrings.SuperMsgBoxRes == MessageBoxResult.OK)
                 {
-                    VerAssetsJArray = (JArray) JsonConvert.DeserializeObject(VerChk["assets"].ToString());
+                    VerAssetsJArray = (JArray)JsonConvert.DeserializeObject(VerChk["assets"].ToString());
                     for (var i = 0; i <= VerAssetsJArray.Count - 1; i++)
                         if (VerAssetsJArray[i]["name"].ToString() == "Osakabehime.exe")
                             CommonStrings.ExeUpdateUrl = VerAssetsJArray[i]["browser_download_url"].ToString();
@@ -1008,14 +1016,12 @@ namespace Osakabehime
         private void AlphaImage(object sender, RoutedEventArgs e)
         {
             Start_Alpha.IsEnabled = false;
-            var path = Directory.GetCurrentDirectory();
-            var inputdialog = new CommonOpenFileDialog {IsFolderPicker = true, Title = "需要合成的Alpha图片文件目录."};
+            var inputdialog = new CommonOpenFileDialog { IsFolderPicker = true, Title = "需要合成的Alpha图片文件目录." };
             var resultinput = inputdialog.ShowDialog();
             var inputfolder = "";
             if (resultinput == CommonFileDialogResult.Ok) inputfolder = inputdialog.FileName;
             if (inputfolder == "")
             {
-                MessageBox.Error("错误的文件夹.", "温馨提示:");
                 Start_Alpha.IsEnabled = true;
                 return;
             }
@@ -1129,10 +1135,7 @@ namespace Osakabehime
 
         private void ExportImage(string beh, string src)
         {
-            Dispatcher.Invoke(() =>
-            {
-                Icon_Status.Items.Clear();
-            });
+            Dispatcher.Invoke(() => { Icon_Status.Items.Clear(); });
             var filePathOnly = Path.GetDirectoryName(src);
             var TrueDirectory = new DirectoryInfo(filePathOnly);
             var CutDirectory = new DirectoryInfo(TrueDirectory + @"\Cut");
@@ -1140,14 +1143,15 @@ namespace Osakabehime
             var res = File.ReadAllText(beh);
             var imgSrc = Image.FromFile(src);
             var MonoJson = JObject.Parse(res);
-            var Sprites = (JArray) JsonConvert.DeserializeObject(MonoJson["mSprites"].ToString());
+            var Sprites = (JArray)JsonConvert.DeserializeObject(MonoJson["mSprites"].ToString());
             foreach (var cuttmp in Sprites)
             {
                 var tmp = JObject.Parse(cuttmp.ToString());
                 Image ss;
                 try
                 {
-                    ss = KiCut(imgSrc, int.Parse(tmp["x"].ToString()), int.Parse(tmp["y"].ToString()), int.Parse(tmp["width"].ToString()),
+                    ss = KiCut(imgSrc, int.Parse(tmp["x"].ToString()), int.Parse(tmp["y"].ToString()),
+                        int.Parse(tmp["width"].ToString()),
                         int.Parse(tmp["height"].ToString()));
                 }
                 catch (Exception e)
@@ -1159,16 +1163,12 @@ namespace Osakabehime
                     });
                     continue;
                 }
-                Dispatcher.Invoke(() =>
-                {
-                    Icon_Status.Items.Insert(0, "正在切割:" + tmp["name"] + ".png");
-                });
+
+                Dispatcher.Invoke(() => { Icon_Status.Items.Insert(0, "正在切割:" + tmp["name"] + ".png"); });
                 ss.Save(CutDirectory.FullName + @"\\" + tmp["name"] + ".png", ImageFormat.Png);
-                Dispatcher.Invoke(() =>
-                {
-                    Icon_Status.Items.Insert(0, "切割完成:" + tmp["name"] + ".png");
-                });
+                Dispatcher.Invoke(() => { Icon_Status.Items.Insert(0, "切割完成:" + tmp["name"] + ".png"); });
             }
+
             Dispatcher.Invoke(() => { Icon_Status.Items.Insert(0, "合成工作全部完成."); });
             Thread.Sleep(3000);
             Dispatcher.Invoke(() =>
@@ -1181,35 +1181,24 @@ namespace Osakabehime
 
         public static Image KiCut(Image b, int StartX, int StartY, int iWidth, int iHeight)
         {
-            if (b == null)
-            {
-                return null;
-            }
+            if (b == null) return null;
 
-            int w = b.Width;
-            int h = b.Height;
+            var w = b.Width;
+            var h = b.Height;
 
-            if (StartX >= w || StartY >= h)
-            {
-                return null;
-            }
+            if (StartX >= w || StartY >= h) return null;
 
-            if (StartX + iWidth > w)
-            {
-                iWidth = w - StartX;
-            }
+            if (StartX + iWidth > w) iWidth = w - StartX;
 
-            if (StartY + iHeight > h)
-            {
-                iHeight = h - StartY;
-            }
+            if (StartY + iHeight > h) iHeight = h - StartY;
 
             try
             {
                 var bmpOut = new Bitmap(iWidth, iHeight);
 
-                Graphics g = Graphics.FromImage(bmpOut);
-                g.DrawImage(b, new Rectangle(0, 0, iWidth, iHeight), new Rectangle(StartX, StartY, iWidth, iHeight), GraphicsUnit.Pixel);
+                var g = Graphics.FromImage(bmpOut);
+                g.DrawImage(b, new Rectangle(0, 0, iWidth, iHeight), new Rectangle(StartX, StartY, iWidth, iHeight),
+                    GraphicsUnit.Pixel);
                 g.Dispose();
 
                 return bmpOut;
@@ -1230,10 +1219,7 @@ namespace Osakabehime
                 mono = Icon_Cutter_monopickerdisplay.Text;
                 Start_IconCutter.IsEnabled = false;
             });
-            var Cut = new Task(() =>
-            {
-                ExportImage(mono, png);
-            });
+            var Cut = new Task(() => { ExportImage(mono, png); });
             Cut.Start();
         }
 
@@ -1245,13 +1231,9 @@ namespace Osakabehime
             var input = "";
             if (resultinput == CommonFileDialogResult.Ok) input = inputdialog.FileName;
             if (input == "")
-            {
                 MessageBox.Error("错误的文件.", "温馨提示:");
-            }
             else
-            {
                 Icon_Cutter_pngpickerdisplay.Text = input;
-            }
             if (Icon_Cutter_pngpickerdisplay.Text != "" && Icon_Cutter_monopickerdisplay.Text != "")
                 Start_IconCutter.IsEnabled = true;
         }
@@ -1264,15 +1246,143 @@ namespace Osakabehime
             var input = "";
             if (resultinput == CommonFileDialogResult.Ok) input = inputdialog.FileName;
             if (input == "")
-            {
                 MessageBox.Error("错误的文件.", "温馨提示:");
-            }
             else
-            {
                 Icon_Cutter_monopickerdisplay.Text = input;
-            }
             if (Icon_Cutter_pngpickerdisplay.Text != "" && Icon_Cutter_monopickerdisplay.Text != "")
                 Start_IconCutter.IsEnabled = true;
+        }
+
+        private void Start_ScriptDecry_OnClick(object sender, RoutedEventArgs e)
+        {
+            Start_ScriptDecry.IsEnabled = false;
+            var inputdialog = new CommonOpenFileDialog { IsFolderPicker = true, Title = "需要解密的剧情文本文件目录." };
+            var resultinput = inputdialog.ShowDialog();
+            var inputfolder = "";
+            if (resultinput == CommonFileDialogResult.Ok) inputfolder = inputdialog.FileName;
+            if (inputfolder == "")
+            {
+                Start_ScriptDecry.IsEnabled = true;
+                return;
+            }
+
+            if (SrvJPS.IsChecked == true) CatAndMouseGame.JP();
+            if (SrvCNS.IsChecked == true) CatAndMouseGame.CN();
+            if (SrvENS.IsChecked == true) CatAndMouseGame.EN();
+            Dispatcher.Invoke(() =>
+            {
+                Script_Status.Items.Clear();
+                Script_Progress.Value = 0.0;
+                Script_Status.Items.Insert(0, "开始解密剧情文本...");
+            });
+            var ignoreabk = false;
+            if (!File.Exists(gamedata.FullName + @"\assetbundlekey.json") && SrvJPS.IsChecked == true)
+            {
+                MessageBox.Error("未找到assetbundlekey.json,本次将忽略该操作.\r\n请使用Altera下载一次数据.", "温馨提示:");
+                ignoreabk = !ignoreabk;
+            }
+
+            var SD = new Task(() => { ScriptDecrycter(inputfolder, ignoreabk); });
+            SD.Start();
+        }
+
+        private void ScriptDecrycter(string inputdest, bool ignoreabk = false)
+        {
+            var DirectoryInput = new DirectoryInfo(inputdest);
+            var OutputDirectory = new DirectoryInfo(inputdest + @"\Decrypted");
+            var FailedDirectory = new DirectoryInfo(inputdest + @"\Failed");
+            var CanDelDirectory = new DirectoryInfo(inputdest + @"\CanDel");
+            if (!Directory.Exists(OutputDirectory.FullName))
+                Directory.CreateDirectory(OutputDirectory.FullName);
+            if (!Directory.Exists(FailedDirectory.FullName))
+                Directory.CreateDirectory(FailedDirectory.FullName);
+            if (!Directory.Exists(CanDelDirectory.FullName))
+                Directory.CreateDirectory(CanDelDirectory.FullName);
+            var FileCounts = DirectoryInput.GetFiles("*.txt").Length;
+            if (FileCounts == 0)
+            {
+                MessageBox.Error(
+                    "不存在txt文件,请查看目录是否选择错误.",
+                    "错误");
+                Dispatcher.Invoke(() =>
+                {
+                    Script_Status.Items.Clear();
+                    Script_Progress.Value = 0.0;
+                    Start_ScriptDecry.IsEnabled = true;
+                });
+                return;
+            }
+
+            Thread.Sleep(1000);
+            var checkbool = false;
+            Dispatcher.Invoke(() =>
+            {
+                checkbool = SrvJPS.IsChecked == true && isUsingabK.IsChecked == true && !ignoreabk;
+            });
+            var progressValue = Convert.ToDouble(100000 / FileCounts);
+            foreach (var file in DirectoryInput.GetFiles("*.txt"))
+            {
+                var data = File.ReadAllText(file.FullName);
+                string result;
+                Dispatcher.Invoke(() => { Script_Progress.Value += progressValue; });
+                result = CatAndMouseGame.MouseGame3(data);
+                if (result == null)
+                {
+                    if (checkbool)
+                    {
+                        Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "尝试额外解密:" + file.Name); });
+                        var assetbundlekey =
+                            (JArray)JsonConvert.DeserializeObject(
+                                File.ReadAllText(gamedata.FullName + @"\assetbundlekey.json"));
+                        var counter = 0;
+                        foreach (var key in assetbundlekey)
+                        {
+                            var try_key = ((JObject)key)["decryptKey"].ToString();
+                            result = CatAndMouseGame.MouseGame3_34091232(data, try_key);
+                            if (result == null)
+                            {
+                                counter++;
+                                Thread.Sleep(1);
+                                continue;
+                            }
+
+                            Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "解密:" + file.Name); });
+                            File.WriteAllText(
+                                OutputDirectory.FullName + @"\" + file.Name.Substring(0, file.Name.Length - 4) +
+                                "@usedKeytype-" + ((JObject)key)["id"] + ".txt", result);
+                            File.Move(file.FullName, CanDelDirectory.FullName + @"\" + file.Name);
+                            Thread.Sleep(1);
+                            break;
+                        }
+
+                        if (counter != assetbundlekey.Count) continue;
+                        Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "额外解密失败:" + file.Name); });
+                        File.Move(file.FullName, FailedDirectory.FullName + @"\" + file.Name);
+                    }
+                    else
+                    {
+                        Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "解密失败:" + file.Name); });
+                        File.Move(file.FullName, FailedDirectory.FullName + @"\" + file.Name);
+                    }
+                }
+                else
+                {
+                    Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "解密:" + file.Name); });
+                    File.WriteAllText(OutputDirectory.FullName + @"\" + file.Name, result);
+                    File.Move(file.FullName, CanDelDirectory.FullName + @"\" + file.Name);
+                }
+
+                Thread.Sleep(1);
+            }
+
+            Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "解密完成."); });
+            Thread.Sleep(2000);
+            Dispatcher.Invoke(() =>
+            {
+                Script_Status.Items.Clear();
+                Script_Progress.Value = 0.0;
+                Start_ScriptDecry.IsEnabled = true;
+            });
         }
     }
 }

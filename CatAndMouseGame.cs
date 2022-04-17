@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -125,6 +124,7 @@ public class CatAndMouseGame
             else
                 stageTop[i / 2] = bytes[i];
     }
+
     public static void JP()
     {
         var bytes = Encoding.UTF8.GetBytes("kzdMtpmzqCHAfx00saU1gIhTjYCuOD1JstqtisXsGYqRVcqrHRydj3k6vJCySu3g");
@@ -151,6 +151,7 @@ public class CatAndMouseGame
             else
                 stageTop[i / 2] = bytes[i];
     }
+
     public static string getShaName(string name)
     {
         SHA1 sha = new SHA1CryptoServiceProvider();
@@ -166,7 +167,7 @@ public class CatAndMouseGame
     public static string CatGame3(string str)
     {
         var bytes = Encoding.UTF8.GetBytes(str);
-        for (var i = 0; i < bytes.Length; i++) bytes[i] = (byte) ~bytes[i];
+        for (var i = 0; i < bytes.Length; i++) bytes[i] = (byte)~bytes[i];
         return CatHome(bytes, stageData, stageTop, true);
     }
 
@@ -175,8 +176,38 @@ public class CatAndMouseGame
         var data = Convert.FromBase64String(str);
         var array = MouseHomeMain(data, stageData, stageTop, true);
         if (array == null) return null;
-        for (var i = 0; i < array.Length; i++) array[i] = (byte) ~array[i];
+        for (var i = 0; i < array.Length; i++) array[i] = (byte)~array[i];
         return Encoding.UTF8.GetString(array).TrimEnd(new char[1]);
+    }
+
+    public static string MouseGame3_34091232(string str, string key)
+    {
+        byte[] info;
+        byte[] home;
+        string output;
+        OtherHomeBuilding(key, out home, out info);
+        output = MouseGame3_34091480(str, home, info);
+        return output;
+    }
+
+    public static string MouseGame3_34091480(string str, byte[] home, byte[] info)
+    {
+        var bytes = Convert.FromBase64String(str);
+        var array = MouseHomeMain(bytes, home, info, true);
+        if (array == null) return null;
+        return Encoding.UTF8.GetString(array).TrimEnd(new char[1]);
+    }
+
+    public static void OtherHomeBuilding(string data, out byte[] home, out byte[] info)
+    {
+        var bytes = Encoding.UTF8.GetBytes(data);
+        home = new byte[32];
+        info = new byte[32];
+        for (var i = 0; i < bytes.Length; i++)
+            if (i == 0)
+                home[i] = bytes[i];
+            else
+                info[i] = bytes[i];
     }
 
     public static byte[] CatGame4(byte[] data)
@@ -186,8 +217,8 @@ public class CatAndMouseGame
             if (i + 1 >= data.Length) break;
             var b = data[i];
             var b2 = data[i + 1];
-            data[i] = (byte) (b2 ^ 206);
-            data[i + 1] = (byte) (b ^ 210);
+            data[i] = (byte)(b2 ^ 206);
+            data[i + 1] = (byte)(b ^ 210);
         }
 
         return CatHomeMain(data, baseData, baseTop);
@@ -207,8 +238,8 @@ public class CatAndMouseGame
             if (i + 1 >= array.Length) break;
             var b = array[i];
             var b2 = array[i + 1];
-            array[i] = (byte) (b2 ^ 210);
-            array[i + 1] = (byte) (b ^ 206);
+            array[i] = (byte)(b2 ^ 210);
+            array[i + 1] = (byte)(b ^ 206);
         }
 
         return array;
@@ -217,7 +248,7 @@ public class CatAndMouseGame
     public static string CatGame8(string str)
     {
         var bytes = Encoding.UTF8.GetBytes(str);
-        for (var i = 0; i < bytes.Length; i++) bytes[i] = (byte) ~bytes[i];
+        for (var i = 0; i < bytes.Length; i++) bytes[i] = (byte)~bytes[i];
         return CatHomeZ2(bytes, stageData, stageTop, true);
     }
 
@@ -231,7 +262,7 @@ public class CatAndMouseGame
             if (array == null) return null;
         }
 
-        for (var i = 0; i < array.Length; i++) array[i] = (byte) ~array[i];
+        for (var i = 0; i < array.Length; i++) array[i] = (byte)~array[i];
         return Encoding.UTF8.GetString(array).TrimEnd(new char[1]);
     }
 
@@ -376,12 +407,12 @@ public class CatAndMouseGame
         try
         {
             using (var cryptoTransform = new RijndaelManaged
-            {
-                Padding = PaddingMode.PKCS7,
-                Mode = CipherMode.CBC,
-                KeySize = 256,
-                BlockSize = 256
-            }.CreateDecryptor(home, info))
+                   {
+                       Padding = PaddingMode.PKCS7,
+                       Mode = CipherMode.CBC,
+                       KeySize = 256,
+                       BlockSize = 256
+                   }.CreateDecryptor(home, info))
             {
                 using (var dataDecryptor = new DataDecryptor(cryptoTransform, data, isCompress))
                 {
@@ -457,15 +488,15 @@ public class CatAndMouseGame
         public byte[] ToByteArray()
         {
             if (!isCompress && memoryStream != null)
-                return (long) memoryStream.Capacity != memoryStream.Length
+                return memoryStream.Capacity != memoryStream.Length
                     ? memoryStream.ToArray()
                     : memoryStream.GetBuffer();
             if (memoryStreamBZip != null)
-                return (long) memoryStreamBZip.Capacity != memoryStreamBZip.Length
+                return memoryStreamBZip.Capacity != memoryStreamBZip.Length
                     ? memoryStreamBZip.ToArray()
                     : memoryStreamBZip.GetBuffer();
             Console.Write("memoryStream is null !");
-            return (byte[]) Enumerable.Empty<byte>();
+            return (byte[])Enumerable.Empty<byte>();
         }
 
         protected virtual void Dispose(bool isDisposing)

@@ -279,7 +279,62 @@
                             hc:BorderElement.CornerRadius="5" Width="35" Click="Select_Mono" />
                 </Grid>
             </TabItem>
-            <TabItem Header="关于" Margin="334.4,0,-334.4,0.4">
+            <TabItem Header="剧情解密">
+                <Grid>
+                    <TextBlock
+                        Text="本功能可帮助对解包的剧情文本文件(*.txt)进行解密操作.&#xA;选择文件夹后会自动进行解密.(文件较多时出现卡顿为正常现象.)&#xA;注:部分日服剧情有其他加密需勾选复选框.&#xA;且也会有部分文本因没有对应Key而无法解密的情况."
+                        HorizontalAlignment="Left" Height="83" Margin="10,5,0,0"
+                        VerticalAlignment="Top"
+                        Width="395" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
+                        FontFamily="Source Han Sans SC" />
+                    <hc:Divider Margin="10,88,389,285" />
+                    <TextBlock Text="选择资源对应的区服(key选择):"
+                               HorizontalAlignment="Left" Height="29" Margin="10,97,0,0"
+                               VerticalAlignment="Top"
+                               Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
+                    <RadioButton x:Name="SrvJPS" Content="JP" HorizontalAlignment="Left" Margin="74,121,0,0"
+                                 VerticalAlignment="Top" GroupName="SDServer"
+                                 IsChecked="True" />
+                    <RadioButton x:Name="SrvCNS" Content="CN" HorizontalAlignment="Left" Margin="74,144,0,0"
+                                 VerticalAlignment="Top" GroupName="SDServer" />
+                    <RadioButton x:Name="SrvENS" Content="EN" HorizontalAlignment="Left" Margin="74,167,0,0"
+                                 VerticalAlignment="Top" GroupName="SDServer" />
+                    <TextBlock Text="*(JP限定):是否使用assetbundleKey补充解密?"
+                               HorizontalAlignment="Left" Height="29" Margin="10,189,0,0"
+                               VerticalAlignment="Top"
+                               Width="395" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
+                    <CheckBox x:Name="isUsingabK" HorizontalAlignment="Left" Margin="291,191,0,0"
+                              VerticalAlignment="Top" IsChecked="True"
+                              ToolTip="勾选此项时,会根据assetbundleKey.json文件&#xA;进行部分剧情文本文件的补充解密.&#xA;该json文件会随着Altera的资源下载而被创建." />
+                    <TextBlock Text="状态:"
+                               HorizontalAlignment="Left" Height="20" Margin="410,0,0,0"
+                               VerticalAlignment="Top"
+                               Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
+                               FontFamily="Source Han Sans SC" />
+                    <ProgressBar x:Name="Script_Progress" HorizontalAlignment="Left" Height="20" Margin="410,359,0,0"
+                                 VerticalAlignment="Top" Width="374" Maximum="100000" SmallChange="0.01"
+                                 LargeChange="5" />
+                    <ListBox x:Name="Script_Status" HorizontalAlignment="Left" Height="334" Margin="410,20,0,0"
+                             VerticalAlignment="Top" Width="374" Foreground="#FF737373"
+                             FontSize="10.5">
+                        <ListBox.Background>
+                            <SolidColorBrush Color="White" Opacity="0.4" />
+                        </ListBox.Background>
+                    </ListBox>
+                    <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
+                            x:Name="Start_ScriptDecry" Content="选择目录" HorizontalAlignment="Left"
+                            Margin="119,349,0,0" VerticalAlignment="Top" Width="157"
+                            Foreground="#FFFFFFFF" Click="Start_ScriptDecry_OnClick">
+                        <Button.Background>
+                            <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
+                                <GradientStop Color="#FF326CF3" Offset="0" />
+                                <GradientStop Color="#FF7BA2FF" Offset="1" />
+                            </LinearGradientBrush>
+                        </Button.Background>
+                    </Button>
+                </Grid>
+            </TabItem>
+            <TabItem Header="关于" Margin="265,0,-265,0.4">
                 <Grid>
                     <Image Margin="566,10,9.6,228.8" Source="Assets/NoXing.jpg" />
                     <TextBlock Text="Osakabehime" HorizontalAlignment="Left" Height="40"
