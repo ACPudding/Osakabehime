@@ -31,6 +31,7 @@ namespace Osakabehime
         private static string[,] tmp;
         private static string[,] tmpold;
         private static readonly object LockedList = new object();
+        private static readonly object LockedList2 = new object();
 
         public MainWindow()
         {
@@ -137,6 +138,7 @@ namespace Osakabehime
             });
             Dispatcher.Invoke(() => { Decrypt_Status.Items.Clear(); });
             var ifcontinue = true;
+            Dispatcher.Invoke(() => { ifcontinue = RenameYes.IsChecked == true; });
             Dispatcher.Invoke(() =>
             {
                 if (RenameYes.IsChecked != true) return;
@@ -163,8 +165,20 @@ namespace Osakabehime
                     }
 
                     var data = File.ReadAllText(decrypt.FullName + @"\AssetStorage.txt");
-                    var loadData = CatAndMouseGame.MouseGame8(data);
-                    File.WriteAllText(decrypt.FullName + @"\AssetStorage_dec.txt", loadData);
+                    try
+                    {
+                        var loadData = CatAndMouseGame.MouseGame8(data);
+                        File.WriteAllText(decrypt.FullName + @"\AssetStorage_dec.txt", loadData);
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Error(
+                            "请检查区服是否选择正确!\r\n" + e,
+                            "错误");
+                        ifcontinue = false;
+                        return;
+                    }
+
                     RemindLog = "写入: " + decrypt.FullName + @"\AssetStorage_dec.txt";
                     Decrypt_Status.Items.Insert(0, RemindLog);
                     var assetStore = File.ReadAllLines(decrypt.FullName + @"\AssetStorage_dec.txt");
@@ -194,36 +208,39 @@ namespace Osakabehime
             var fileCountall = Directory.GetFiles(folder.FullName).Length;
             var progressValuebin = Convert.ToDouble(100000 / fileCountbin);
             var progressValueall = Convert.ToDouble(100000 / fileCountall);
-            Parallel.ForEach(folder.GetFiles("*.bin"), file =>
+            Parallel.ForEach(folder.GetFiles("*.bin"), new ParallelOptions { MaxDegreeOfParallelism = 8 }, file =>
             {
                 try
                 {
-                    RemindLog = "解密: " + file.FullName;
-                    Dispatcher.Invoke(() => { Decrypt_Status.Items.Insert(0, RemindLog); });
-                    raw = File.ReadAllBytes(file.FullName);
-                    output = CatAndMouseGame.MouseGame4(raw);
-                    if (!Directory.Exists(renamedAssets.FullName))
-                        Directory.CreateDirectory(renamedAssets.FullName);
-                    File.WriteAllBytes(renamedAssets.FullName + @"\" + file.Name, output);
-                    Dispatcher.Invoke(() => { Decrypt_Progress.Value += progressValuebin; });
-                    if (isDeleteFile)
-                        File.Delete(file.FullName);
-                    Thread.Sleep(50);
+                    lock (LockedList2)
+                    {
+                        RemindLog = "解密: " + file.FullName;
+                        Dispatcher.Invoke(() => { Decrypt_Status.Items.Insert(0, RemindLog); });
+                        raw = File.ReadAllBytes(file.FullName);
+                        output = CatAndMouseGame.MouseGame4(raw);
+                        if (!Directory.Exists(renamedAssets.FullName))
+                            Directory.CreateDirectory(renamedAssets.FullName);
+                        File.WriteAllBytes(renamedAssets.FullName + @"\" + file.Name, output);
+                        Dispatcher.Invoke(() => { Decrypt_Progress.Value += progressValuebin; });
+                        if (isDeleteFile)
+                            File.Delete(file.FullName);
+                        Task.Delay(50);
+                    }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    Dispatcher.Invoke(() => { MessageBox.Error("解密时遇到错误.\r\n", "错误"); });
+                    Dispatcher.Invoke(() =>
+                    {
+                        Decrypt_Status.Items.Insert(0, $"{ex}");
+                        Decrypt_Status.Items.Insert(0, $"解密错误: {file.FullName}");
+                    });
                 }
             });
 
-            Dispatcher.Invoke(() =>
-            {
-                if (RenameYes.IsChecked == true) ifcontinue = true;
-            });
             Dispatcher.Invoke(() => { Decrypt_Progress.Value = Decrypt_Progress.Maximum; });
             if (!ifcontinue)
             {
-                Decrypt_Status.Items.Insert(0, "完成.");
+                Dispatcher.Invoke(() => { Decrypt_Status.Items.Insert(0, "完成."); });
                 return;
             }
 
@@ -235,23 +252,30 @@ namespace Osakabehime
             var AssetJsonNameArray = (JArray)JsonConvert.DeserializeObject(AssetJsonName);
             var binCountall = Directory.GetFiles(renamedAssets.FullName).Length;
             progressValueall = Convert.ToDouble(100000 / binCountall);
-            Parallel.ForEach(renamedAssets.GetFiles("*.bin"), file =>
-            {
-                Parallel.ForEach(AssetJsonNameArray, FileNametmp =>
+            Parallel.ForEach(renamedAssets.GetFiles("*.bin"), new ParallelOptions { MaxDegreeOfParallelism = 8 },
+                file =>
                 {
-                    if (((JObject)FileNametmp)["fileName"].ToString() != file.Name) return;
-                    var FileNameObjtmp = JObject.Parse(FileNametmp.ToString());
-                    var FileAssetNametmp = FileNameObjtmp["assetName"].ToString();
-                    RemindLog = "重命名: " + file.Name + " → \r\n" + FileAssetNametmp + "\n";
-                    Dispatcher.Invoke(() => { Decrypt_Status.Items.Insert(0, RemindLog); });
-                    if (File.Exists(renamedAssets.FullName + @"\" + FileAssetNametmp))
-                        File.Delete(renamedAssets.FullName + @"\" + FileAssetNametmp);
-                    File.Move(renamedAssets.FullName + @"\" + file.Name,
-                        renamedAssets.FullName + @"\" + FileAssetNametmp);
-                    Dispatcher.Invoke(() => { Decrypt_Progress.Value += progressValueall; });
-                    Thread.Sleep(10);
+                    Parallel.ForEach(AssetJsonNameArray,
+                        FileNametmp =>
+                        {
+                            lock (LockedList)
+                            {
+                                if (((JObject)FileNametmp)["fileName"].ToString() != file.Name) return;
+                                var FileNameObjtmp = JObject.Parse(FileNametmp.ToString());
+                                var FileAssetNametmp = FileNameObjtmp["assetName"].ToString();
+                                RemindLog = "重命名: " + file.Name + " → \r\n" + FileAssetNametmp + "\n";
+                                Dispatcher.Invoke(() => { Decrypt_Status.Items.Insert(0, RemindLog); });
+                                if (File.Exists(renamedAssets.FullName + @"\" + FileAssetNametmp))
+                                    File.Delete(renamedAssets.FullName + @"\" + FileAssetNametmp);
+                                File.Move(renamedAssets.FullName + @"\" + file.Name,
+                                    renamedAssets.FullName + @"\" + FileAssetNametmp);
+                                Dispatcher.Invoke(() => { Decrypt_Progress.Value += progressValueall; });
+                                Task.Delay(50);
+                            }
+                        });
                 });
-            });
+            Dispatcher.Invoke(() => { Decrypt_Status.Items.Insert(0, "重命名完成."); });
+            await Task.Delay(200);
         }
 
         private async void AssetDecrypt(object sender, RoutedEventArgs e)
@@ -262,13 +286,14 @@ namespace Osakabehime
             if (resultinput == CommonFileDialogResult.Ok) inputfolder = inputdialog.FileName;
             if (inputfolder == "") return;
             var outputfolder = inputfolder + @"\Decrypted";
-            var isDeleteFile = false;
             var input = new DirectoryInfo(inputfolder);
             var output = new DirectoryInfo(outputfolder);
             Start_Decrypt.IsEnabled = false;
             Decrypt_Progress.Value = 0;
             await Task.Run(async () => { await DecryptBinFileFolderAsync(input, output); });
-            Thread.Sleep(1500);
+            await Task.Delay(1500);
+            Decrypt_Status.Items.Clear();
+            Decrypt_Progress.Value = 0.0;
             Start_Decrypt.IsEnabled = true;
         }
 
@@ -278,7 +303,7 @@ namespace Osakabehime
             Starter.Start();
         }
 
-        private void DownloadAssets()
+        private async void DownloadAssets()
         {
             Dispatcher.Invoke(() => { Download_Status.Items.Clear(); });
             Dispatcher.Invoke(() => { Download_Progress.Value = 0.0; });
@@ -294,21 +319,23 @@ namespace Osakabehime
                 return;
             }
 
-            Dispatcher.Invoke(async () =>
+            await Dispatcher.InvokeAsync(async () =>
             {
                 if (Mode1.IsChecked != true)
                 {
-                    await Task.Run(DownloadAssetsSub).ConfigureAwait(false);
-                    if (isDownloadAudio.IsChecked == true) await Task.Run(DownloadAudioSub).ConfigureAwait(false);
-                    if (isDownloadMovie.IsChecked == true) await Task.Run(DownloadMovieSub).ConfigureAwait(false);
-                    GC.Collect();
+                    await DownloadAssetsSub();
+                    Download_Status.Items.Insert(0, "下载完成.");
+                    Download_Progress.Value = Download_Progress.Maximum;
+                    await Task.Delay(2000);
+                    Download_Status.Items.Clear();
+                    Download_Progress.Value = 0.0;
                 }
                 else
                 {
                     await Task.Run(DownloadHighAcc).ConfigureAwait(false);
-                    GC.Collect();
                 }
             });
+            GC.Collect();
         }
 
         private async Task DHASub(IReadOnlyCollection<int> DownloadLine)
@@ -323,7 +350,7 @@ namespace Osakabehime
                 if (FourThread.IsChecked == true) DownloadParallel = 4;
             });
             var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
-            var ProgressBarValueAdd = 50000 / DownloadLine.Count;
+            var ProgressBarValueAdd = (double)50000 / DownloadLine.Count;
             var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
             Parallel.ForEach(DownloadLine, paralleloptions, async DownloadItem =>
             {
@@ -557,7 +584,7 @@ namespace Osakabehime
         }
 
         private void DownloadAssetsSpecialSub(string assetBundleFolder, string filename, string writePath, string names,
-            int ProgressBarValueAdd)
+            double ProgressBarValueAdd)
         {
             try
             {
@@ -612,188 +639,256 @@ namespace Osakabehime
             }
         }
 
-        private async void DownloadAssetsSub()
+        private async Task DownloadAssetsSub()
         {
-            var ASLine = File.ReadAllLines(AssetStorageFilePath);
-            var ASLineCount = ASLine.Length;
+            string[] ASLine;
+            int ASLineCount;
+            try
+            {
+                ASLine = File.ReadAllLines(AssetStorageFilePath);
+                ASLineCount = ASLine.Length;
+            }
+            catch (Exception)
+            {
+                MessageBox.Error("未找到AssetStorage.txt文件,请通过Altera进行下载.", "错误");
+                Dispatcher.Invoke(() =>
+                {
+                    Start.IsEnabled = true;
+                    Download_Status.Items.Clear();
+                });
+                return;
+            }
+
             var DataTimeStringINFO = ASLine[1].Split(',');
             var DataVersion = DataTimeStringINFO[2];
-            var ProgressBarValueAdd = Convert.ToInt32(50000 / ASLineCount);
+            var ProgressBarValueAdd = (double)50000 / ASLineCount;
             var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
             var assetList = JArray.Parse(File.ReadAllText(gamedata.FullName + "AssetName.json"));
-            var DownloadParallel = 1;
+            var isM2 = false;
+            var isAudioDownload = false;
+            var isMovieDownload = false;
+            var isAssetsDownload = false;
             Dispatcher.Invoke(() =>
             {
-                if (TwoThread.IsChecked == true) DownloadParallel = 2;
-                if (FourThread.IsChecked == true) DownloadParallel = 4;
+                if (Mode2.IsChecked == true) isM2 = true;
+                if (isDownloadAudio.IsChecked == true) isAudioDownload = true;
+                if (isDownloadMovie.IsChecked == true) isMovieDownload = true;
+                if (isDownloadAssets.IsChecked == true) isAssetsDownload = true;
             });
-            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
-            Parallel.ForEach(assetList, paralleloptions, asset =>
+            if (!isAssetsDownload)
             {
-                _ = Dispatcher.InvokeAsync(async () =>
+                var Value = assetList.Count * ProgressBarValueAdd;
+                Dispatcher.Invoke(() =>
                 {
-                    var filename = asset["fileName"].ToString();
-                    var assetName = asset["assetName"].ToString();
-                    if (!assetName.EndsWith(".unity3d")) return;
-                    var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
-                                    DataVersion.Replace(":", "") + "\\";
-                    var names = assetName.Split('@');
-                    if (names.Length > 1)
-                    {
-                        writePath += string.Join(@"\", names);
-                        var writeDirectory = Path.GetDirectoryName(writePath);
-                        if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
-                    }
-                    else
-                    {
-                        writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
-                                    DataVersion.Replace(":", "") + "\\" + assetName;
-                    }
+                    Download_Status.Items.Insert(0, "跳过Assets下载.");
+                    Download_Progress.Value += Value;
+                });
+                await Task.Delay(10);
+                goto AudioAndMovie;
+            }
 
-                    if (File.Exists(writePath))
+            foreach (var asset in assetList)
+            {
+                var filename = asset["fileName"].ToString();
+                var assetName = asset["assetName"].ToString();
+                if (!assetName.EndsWith(".unity3d")) continue;
+                var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
+                                DataVersion.Replace(":", "") + "\\";
+                var names = assetName.Split('@');
+                if (names.Length > 1)
+                {
+                    writePath += string.Join(@"\", names);
+                    var writeDirectory = Path.GetDirectoryName(writePath);
+                    if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
+                }
+                else
+                {
+                    writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
+                                DataVersion.Replace(":", "") + "\\" + assetName;
+                }
+
+                if (File.Exists(writePath))
+                {
+                    if (isM2)
                     {
-                        if (Mode2.IsChecked == true)
+                        Dispatcher.Invoke(() =>
                         {
                             Download_Status.Items.Insert(0, "跳过: " + $"{string.Join(@"\", names)}");
                             Download_Progress.Value += ProgressBarValueAdd;
-                            return;
-                        }
-
-                        File.Delete(writePath);
+                        });
+                        await Task.Delay(10);
+                        continue;
                     }
 
-                    await Task.Run(() =>
-                    {
-                        DownloadAssetSub1(assetBundleFolder, filename, writePath, names, ProgressBarValueAdd);
-                    }).ConfigureAwait(false);
-                });
+                    File.Delete(writePath);
+                }
+
+                await Task.Run(() =>
+                {
+                    DownloadAssetSub1(assetBundleFolder, filename, writePath, names, ProgressBarValueAdd);
+                }).ConfigureAwait(false);
+            }
+
+            AudioAndMovie:
+            await DownloadAudioSub(isAudioDownload);
+            await DownloadMovieSub(isMovieDownload);
+            /*var DAS = new Task(() =>
+            {
+                DownloadAudioSub(isAudioDownload);
             });
-            _ = Dispatcher.InvokeAsync(() => { Start.IsEnabled = true; });
+            var DMS = new Task(() =>
+            {
+               DownloadMovieSub(isMovieDownload);
+            });
+            DAS.Start();
+            DMS.Start();*/
             GC.Collect();
         }
 
-        private async void DownloadAudioSub()
+        private async Task DownloadAudioSub(bool desire)
         {
             var ASLine = File.ReadAllLines(AssetStorageFilePath);
             var ASLineCount = ASLine.Length;
             var DataTimeStringINFO = ASLine[1].Split(',');
             var DataVersion = DataTimeStringINFO[2];
-            var ProgressBarValueAdd = Convert.ToInt32(50000 / ASLineCount);
+            var ProgressBarValueAdd = (double)50000 / ASLineCount;
             var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
             var audioList = JArray.Parse(File.ReadAllText(gamedata.FullName + "AudioName.json"));
-            var DownloadParallel = 1;
+            var isM2 = false;
+            if (!desire)
+            {
+                var Value = audioList.Count * ProgressBarValueAdd;
+                Dispatcher.Invoke(() =>
+                {
+                    Download_Status.Items.Insert(0, "跳过音频下载.");
+                    Download_Progress.Value += Value;
+                });
+                await Task.Delay(10);
+                return;
+            }
+
             Dispatcher.Invoke(() =>
             {
-                if (TwoThread.IsChecked == true) DownloadParallel = 2;
-                if (FourThread.IsChecked == true) DownloadParallel = 4;
+                if (Mode2.IsChecked == true) isM2 = true;
             });
-            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
-            _ = Dispatcher.InvokeAsync(() =>
+            foreach (var audio in audioList)
             {
-                if (isDownloadAudio.IsChecked == true)
-                    Parallel.ForEach(audioList, paralleloptions, async audio =>
+                var audioName = audio["audioName"].ToString();
+                var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
+                                "@Version@" + DataVersion.Replace(":", "") + "\\";
+                var names = audioName.Split('@');
+                if (names.Length > 1)
+                {
+                    writePath += string.Join(@"\", names);
+                    var writeDirectory = Path.GetDirectoryName(writePath);
+                    if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
+                }
+                else
+                {
+                    writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
+                                "@Version@" + DataVersion.Replace(":", "") + "\\" + audioName;
+                }
+
+                if (File.Exists(writePath))
+                {
+                    if (isM2)
                     {
-                        var audioName = audio["audioName"].ToString();
-                        var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
-                                        "@Version@" + DataVersion.Replace(":", "") + "\\";
-                        var names = audioName.Split('@');
-                        if (names.Length > 1)
+                        Dispatcher.Invoke(() =>
                         {
-                            writePath += string.Join(@"\", names);
-                            var writeDirectory = Path.GetDirectoryName(writePath);
-                            if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
-                        }
-                        else
-                        {
-                            writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
-                                        "@Version@" + DataVersion.Replace(":", "") + "\\" + audioName;
-                        }
+                            Download_Status.Items.Insert(0, "跳过: " + $"{string.Join(@"\", names)}");
+                            Download_Progress.Value += ProgressBarValueAdd;
+                        });
+                        await Task.Delay(10);
+                        continue;
+                    }
 
-                        if (File.Exists(writePath))
-                        {
-                            if (Mode2.IsChecked == true)
-                            {
-                                Download_Status.Items.Insert(0, "跳过: " + $"{string.Join(@"\", names)}");
-                                Download_Progress.Value += ProgressBarValueAdd;
-                                return;
-                            }
+                    File.Delete(writePath);
+                }
 
-                            File.Delete(writePath);
-                        }
+                var realAudioDownloadName = audioName.Replace("@", "_");
+                await Task.Run(() =>
+                {
+                    DownloadAssetSub2(assetBundleFolder, realAudioDownloadName, writePath, names,
+                        ProgressBarValueAdd);
+                }).ConfigureAwait(false);
+            }
 
-                        var realAudioDownloadName = audioName.Replace("@", "_");
-                        await Task.Run(() =>
-                        {
-                            DownloadAssetSub2(assetBundleFolder, realAudioDownloadName, writePath, names,
-                                ProgressBarValueAdd);
-                        }).ConfigureAwait(false);
-                    });
-            });
             GC.Collect();
         }
 
-        private void DownloadMovieSub()
+        private async Task DownloadMovieSub(bool desire)
         {
             var ASLine = File.ReadAllLines(AssetStorageFilePath);
             var ASLineCount = ASLine.Length;
             var DataTimeStringINFO = ASLine[1].Split(',');
             var DataVersion = DataTimeStringINFO[2];
-            var ProgressBarValueAdd = Convert.ToInt32(50000 / ASLineCount);
+            var ProgressBarValueAdd = (double)50000 / ASLineCount;
             var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
             var movieList = JArray.Parse(File.ReadAllText(gamedata.FullName + "MovieName.json"));
-            var DownloadParallel = 1;
+            var isM2 = false;
+            if (!desire)
+            {
+                var Value = movieList.Count * ProgressBarValueAdd;
+                Dispatcher.Invoke(() =>
+                {
+                    Download_Status.Items.Insert(0, "跳过视频下载.");
+                    Download_Progress.Value += Value;
+                });
+                await Task.Delay(10);
+                return;
+            }
+
             Dispatcher.Invoke(() =>
             {
-                if (TwoThread.IsChecked == true) DownloadParallel = 2;
-                if (FourThread.IsChecked == true) DownloadParallel = 4;
+                if (Mode2.IsChecked == true) isM2 = true;
             });
-            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
-            Dispatcher.InvokeAsync(() =>
+            foreach (var movie in movieList)
             {
-                if (isDownloadMovie.IsChecked == true)
-                    Parallel.ForEach(movieList, paralleloptions, async movie =>
+                var movieName = movie["movieName"].ToString();
+                var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
+                                "@Version@" + DataVersion.Replace(":", "") + "\\";
+                var names = movieName.Split('@');
+                if (names.Length > 1)
+                {
+                    writePath += string.Join(@"\", names);
+                    var writeDirectory = Path.GetDirectoryName(writePath);
+                    if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
+                }
+                else
+                {
+                    writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
+                                "@Version@" + DataVersion.Replace(":", "") + "\\" + movieName;
+                }
+
+                if (File.Exists(writePath))
+                {
+                    if (isM2)
                     {
-                        var movieName = movie["movieName"].ToString();
-                        var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
-                                        "@Version@" + DataVersion.Replace(":", "") + "\\";
-                        var names = movieName.Split('@');
-                        if (names.Length > 1)
+                        Dispatcher.Invoke(() =>
                         {
-                            writePath += string.Join(@"\", names);
-                            var writeDirectory = Path.GetDirectoryName(writePath);
-                            if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
-                        }
-                        else
-                        {
-                            writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
-                                        "@Version@" + DataVersion.Replace(":", "") + "\\" + movieName;
-                        }
+                            Download_Status.Items.Insert(0, "跳过: " + $"{string.Join(@"\", names)}");
+                            Download_Progress.Value += ProgressBarValueAdd;
+                        });
+                        await Task.Delay(10);
+                        continue;
+                    }
 
-                        if (File.Exists(writePath))
-                        {
-                            if (Mode2.IsChecked == true)
-                            {
-                                Download_Status.Items.Insert(0, "跳过: " + $"{string.Join(@"\", names)}");
-                                Download_Progress.Value += ProgressBarValueAdd;
-                                return;
-                            }
+                    File.Delete(writePath);
+                }
 
-                            File.Delete(writePath);
-                        }
+                var realAudioDownloadName = movieName.Replace("@", "_");
+                await Task.Run(() =>
+                {
+                    DownloadAssetSub2(assetBundleFolder, realAudioDownloadName, writePath, names,
+                        ProgressBarValueAdd);
+                }).ConfigureAwait(false);
+            }
 
-                        var realAudioDownloadName = movieName.Replace("@", "_");
-                        await Task.Run(() =>
-                        {
-                            DownloadAssetSub2(assetBundleFolder, realAudioDownloadName, writePath, names,
-                                ProgressBarValueAdd);
-                        }).ConfigureAwait(false);
-                    });
-            });
             GC.Collect();
         }
 
         private void DownloadAssetSub1(string assetBundleFolder, string filename, string writePath, string[] names,
-            int ProgressBarValueAdd)
+            double ProgressBarValueAdd)
         {
             try
             {
@@ -806,7 +901,7 @@ namespace Osakabehime
                     fs.Write(output, 0, output.Length);
                 }
 
-                _ = Dispatcher.InvokeAsync(() =>
+                Dispatcher.Invoke(() =>
                 {
                     Download_Status.Items.Insert(0, "下载: " + $"{string.Join(@"\", names)}");
                     Download_Progress.Value += ProgressBarValueAdd;
@@ -814,7 +909,7 @@ namespace Osakabehime
             }
             catch (Exception ex)
             {
-                _ = Dispatcher.InvokeAsync(() =>
+                Dispatcher.Invoke(() =>
                 {
                     Download_Status.Items.Insert(0, "下载错误: " + $"{string.Join(@"\", names)}");
                     Download_Progress.Value += ProgressBarValueAdd;
@@ -824,7 +919,7 @@ namespace Osakabehime
         }
 
         private void DownloadAssetSub2(string assetBundleFolder, string filename, string writePath, string[] names,
-            int ProgressBarValueAdd)
+            double ProgressBarValueAdd)
         {
             try
             {

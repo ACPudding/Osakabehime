@@ -47,14 +47,17 @@
                     <RadioButton x:Name="Mode1" Content="差异下载1" HorizontalAlignment="Left" Margin="74,118,0,0"
                                  VerticalAlignment="Top" GroupName="DownloadMode"
                                  IsChecked="True"
-                                 ToolTip="根据AssetStorage.txt中进行逐行比对差异下载，精准度高但很吃CPU(速度因电脑而异).&#xA;须有上一版本的AssetStorage.txt进行比对,且无视右边音视频的复选框." />
+                                 ToolTip="根据AssetStorage.txt中进行逐行比对差异下载，精准度高但很吃CPU(速度因电脑而异).&#xA;须有上一版本的AssetStorage.txt进行比对,且无视右边的复选框." />
                     <RadioButton x:Name="Mode2" Content="差异下载2" HorizontalAlignment="Left" Margin="74,141,0,0"
                                  VerticalAlignment="Top" GroupName="DownloadMode" ToolTip="根据文件是否有增加进行差异下载，精准度低." />
                     <RadioButton x:Name="Mode3" Content="全部下载" HorizontalAlignment="Left" Margin="74,164,0,0"
                                  VerticalAlignment="Top" GroupName="DownloadMode" ToolTip="不论文件是否已经存在，执行全量下载." />
-                    <CheckBox x:Name="isDownloadAudio" Content="下载音频资源" HorizontalAlignment="Left" Margin="214,127,0,0"
+                    <CheckBox x:Name="isDownloadAssets" Content="下载Assets资源" HorizontalAlignment="Left"
+                              Margin="217,118,0,0"
                               VerticalAlignment="Top" IsChecked="True" />
-                    <CheckBox x:Name="isDownloadMovie" Content="下载视频资源" HorizontalAlignment="Left" Margin="214,150,0,0"
+                    <CheckBox x:Name="isDownloadAudio" Content="下载音频资源" HorizontalAlignment="Left" Margin="217,141,0,0"
+                              VerticalAlignment="Top" IsChecked="True" />
+                    <CheckBox x:Name="isDownloadMovie" Content="下载视频资源" HorizontalAlignment="Left" Margin="217,164,0,0"
                               VerticalAlignment="Top" />
                     <TextBlock Text="状态:"
                                HorizontalAlignment="Left" Height="20" Margin="410,0,0,0"
@@ -64,14 +67,18 @@
                     <TextBlock Text="下载线程(线程越高下载越快，但失败率越高):"
                                HorizontalAlignment="Left" Height="24" Margin="10,187,0,0"
                                VerticalAlignment="Top"
-                               Width="273" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC" />
+                               Width="273" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC"
+                               Visibility="{Binding IsChecked, Converter={StaticResource Boolean2VisibilityConverter}, ElementName=Mode1}" />
                     <RadioButton x:Name="OneThread" Content="单线程" HorizontalAlignment="Left" Margin="74,211,0,0"
                                  VerticalAlignment="Top" GroupName="DownloadThread"
-                                 IsChecked="True" />
+                                 IsChecked="True"
+                                 Visibility="{Binding IsChecked, Converter={StaticResource Boolean2VisibilityConverter}, ElementName=Mode1}" />
                     <RadioButton x:Name="TwoThread" Content="2线程" HorizontalAlignment="Left" Margin="74,234,0,0"
-                                 VerticalAlignment="Top" GroupName="DownloadThread" />
+                                 VerticalAlignment="Top" GroupName="DownloadThread"
+                                 Visibility="{Binding IsChecked, Converter={StaticResource Boolean2VisibilityConverter}, ElementName=Mode1}" />
                     <RadioButton x:Name="FourThread" Content="4线程" HorizontalAlignment="Left" Margin="74,257,0,0"
-                                 VerticalAlignment="Top" GroupName="DownloadThread" />
+                                 VerticalAlignment="Top" GroupName="DownloadThread"
+                                 Visibility="{Binding IsChecked, Converter={StaticResource Boolean2VisibilityConverter}, ElementName=Mode1}" />
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                             x:Name="ResetDownloadStatus" Content="重置进度" HorizontalAlignment="Left"
                             Margin="315,349,0,0" VerticalAlignment="Top" Width="90"
