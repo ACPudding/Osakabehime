@@ -329,6 +329,7 @@ namespace Osakabehime
                     await Task.Delay(2000);
                     Download_Status.Items.Clear();
                     Download_Progress.Value = 0.0;
+                    Start.IsEnabled = true;
                 }
                 else
                 {
