@@ -302,7 +302,7 @@
                     <RadioButton x:Name="SrvJPS" Content="JP" HorizontalAlignment="Left" Margin="74,121,0,0"
                                  VerticalAlignment="Top" GroupName="SDServer"
                                  IsChecked="True" />
-                    <RadioButton x:Name="SrvCNS" Content="CN" HorizontalAlignment="Left" Margin="74,144,0,0"
+                    <RadioButton x:Name="SrvCNS" Content="CN/TW" HorizontalAlignment="Left" Margin="74,144,0,0"
                                  VerticalAlignment="Top" GroupName="SDServer" />
                     <RadioButton x:Name="SrvENS" Content="EN" HorizontalAlignment="Left" Margin="74,167,0,0"
                                  VerticalAlignment="Top" GroupName="SDServer" />

@@ -373,6 +373,7 @@ namespace Osakabehime
                 else
                 {
                     var tmpname = tmp[DownloadItem, 4].Replace('/', '@') + ".unity3d";
+                    var keyId = tmp[DownloadItem, 5];
                     var downloadName = CatAndMouseGame.GetShaName(tmpname);
                     var downloadfile = downloadName;
                     var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
@@ -383,7 +384,7 @@ namespace Osakabehime
                     await Task.Run(() =>
                     {
                         DownloadAssetsSpecialSub(assetBundleFolder, downloadfile, writePath, tmp[DownloadItem, 4],
-                            ProgressBarValueAdd);
+                            ProgressBarValueAdd, keyId);
                     }).ConfigureAwait(false);
                 }
             });
@@ -394,18 +395,19 @@ namespace Osakabehime
             var resultlist = new List<int>();
             var ASLine = File.ReadAllLines(AssetStorageFilePath);
             var ASOldLine = File.ReadAllLines(AssetStorageLastFilePath);
-            tmpold = new string[ASOldLine.Length, 5];
-            tmp = new string[ASLine.Length, 5];
+            tmpold = new string[ASOldLine.Length, 6];
+            tmp = new string[ASLine.Length, 6];
             for (var kk = 0; kk < ASLine.Length; kk++)
             {
                 var tmpkk = ASLine[kk].Split(',');
-                if (tmpkk.Length != 5)
+                if (tmpkk.Length != 5 && tmpkk.Length != 6)
                 {
                     tmp[kk, 0] = "0";
                     tmp[kk, 1] = "0";
                     tmp[kk, 2] = "0";
                     tmp[kk, 3] = "0";
                     tmp[kk, 4] = "0";
+                    tmp[kk, 5] = "0";
                     continue;
                 }
 
@@ -414,18 +416,28 @@ namespace Osakabehime
                 tmp[kk, 2] = tmpkk[2];
                 tmp[kk, 3] = tmpkk[3];
                 tmp[kk, 4] = tmpkk[4];
+                switch (tmpkk.Length)
+                {
+                    case 5:
+                        tmp[kk, 5] = "0";
+                        break;
+                    case 6:
+                        tmp[kk, 5] = tmpkk[5];
+                        break;
+                }
             }
 
             for (var jj = 0; jj < ASOldLine.Length; jj++)
             {
                 var tmpkk = ASOldLine[jj].Split(',');
-                if (tmpkk.Length != 5)
+                if (tmpkk.Length != 5 && tmpkk.Length != 6)
                 {
                     tmpold[jj, 0] = "0";
                     tmpold[jj, 1] = "0";
                     tmpold[jj, 2] = "0";
                     tmpold[jj, 3] = "0";
                     tmpold[jj, 4] = "0";
+                    tmpold[jj, 5] = "0";
                     continue;
                 }
 
@@ -434,6 +446,15 @@ namespace Osakabehime
                 tmpold[jj, 2] = tmpkk[2];
                 tmpold[jj, 3] = tmpkk[3];
                 tmpold[jj, 4] = tmpkk[4];
+                switch (tmpkk.Length)
+                {
+                    case 5:
+                        tmpold[jj, 5] = "0";
+                        break;
+                    case 6:
+                        tmpold[jj, 5] = tmpkk[5];
+                        break;
+                }
             }
 
             for (var i = max - 1; i >= min; i--)
@@ -584,25 +605,76 @@ namespace Osakabehime
             GC.Collect();
         }
 
+
         private void DownloadAssetsSpecialSub(string assetBundleFolder, string filename, string writePath, string names,
-            double ProgressBarValueAdd)
+            double ProgressBarValueAdd, string keyId = "0")
         {
+            var WP = writePath;
             try
             {
-                var raw = HttpRequest
-                    .Get($"https://cdn.data.fate-go.jp/AssetStorages/{assetBundleFolder}Android/{filename}")
-                    .ToBinary();
-                var output = writePath.Contains("unity3d") ? CatAndMouseGame.MouseGame4(raw) : raw;
-                using (var fs = new FileStream(writePath, FileMode.OpenOrCreate, FileAccess.Write))
-                {
-                    fs.Write(output, 0, output.Length);
-                }
-
                 _ = Dispatcher.InvokeAsync(() =>
                 {
                     Download_Status.Items.Insert(0, "下载: " + names);
                     Download_Progress.Value += ProgressBarValueAdd;
                 });
+                var raw = HttpRequest
+                    .Get($"https://cdn.data.fate-go.jp/AssetStorages/{assetBundleFolder}Android/{filename}")
+                    .ToBinary();
+                byte[] output = null;
+                if (WP.Contains("unity3d"))
+                    switch (keyId)
+                    {
+                        case "0":
+                            output = CatAndMouseGame.MouseGame4(raw);
+                            break;
+                        default:
+                            if (!File.Exists(gamedata.FullName + @"\assetbundlekey.json"))
+                            {
+                                _ = Dispatcher.InvokeAsync(() =>
+                                {
+                                    Download_Status.Items.Insert(0, "解密失败: " + names);
+                                });
+                                output = raw;
+                                WP += "(undecrypted)";
+                                break;
+                            }
+
+                            var assetbundlekey =
+                                (JArray)JsonConvert.DeserializeObject(
+                                    File.ReadAllText(gamedata.FullName + @"\assetbundlekey.json"));
+                            var count = 0;
+                            foreach (var key in assetbundlekey)
+                            {
+                                if (((JObject)key)["id"].ToString() != keyId)
+                                {
+                                    count++;
+                                    continue;
+                                }
+
+                                var try_key = ((JObject)key)["decryptKey"].ToString();
+                                output = CatAndMouseGame.MouseGame4_34091820(raw, try_key);
+                                break;
+                            }
+
+                            if (count == assetbundlekey.Count)
+                            {
+                                _ = Dispatcher.InvokeAsync(() =>
+                                {
+                                    Download_Status.Items.Insert(0, "解密失败: " + names);
+                                });
+                                output = raw;
+                                WP += "(undecrypted)";
+                            }
+
+                            break;
+                    }
+                else
+                    output = raw;
+
+                using (var fs = new FileStream(WP, FileMode.OpenOrCreate, FileAccess.Write))
+                {
+                    fs.Write(output, 0, output.Length);
+                }
             }
             catch (Exception)
             {
@@ -615,10 +687,61 @@ namespace Osakabehime
                 try
                 {
                     var raw = HttpRequest
-                        .Get($"https://cdn.data.fate-go.jp/AssetStorages/{assetBundleFolder}Android/{filename}")
+                        .Get(
+                            $"https://cdn.data.fate-go.jp/AssetStorages/{assetBundleFolder}Android/{filename}")
                         .ToBinary();
-                    var output = writePath.Contains("unity3d") ? CatAndMouseGame.MouseGame4(raw) : raw;
-                    using (var fs = new FileStream(writePath, FileMode.OpenOrCreate, FileAccess.Write))
+                    byte[] output = null;
+                    if (WP.Contains("unity3d"))
+                        switch (keyId)
+                        {
+                            case "0":
+                                output = CatAndMouseGame.MouseGame4(raw);
+                                break;
+                            default:
+                                if (!File.Exists(gamedata.FullName + @"\assetbundlekey.json"))
+                                {
+                                    _ = Dispatcher.InvokeAsync(() =>
+                                    {
+                                        Download_Status.Items.Insert(0, "解密失败: " + names);
+                                    });
+                                    output = raw;
+                                    WP += "(undecrypted)";
+                                    break;
+                                }
+
+                                var assetbundlekey =
+                                    (JArray)JsonConvert.DeserializeObject(
+                                        File.ReadAllText(gamedata.FullName + @"\assetbundlekey.json"));
+                                var count = 0;
+                                foreach (var key in assetbundlekey)
+                                {
+                                    if (((JObject)key)["id"].ToString() != keyId)
+                                    {
+                                        count++;
+                                        continue;
+                                    }
+
+                                    var try_key = ((JObject)key)["decryptKey"].ToString();
+                                    output = CatAndMouseGame.MouseGame4_34091820(raw, try_key);
+                                    break;
+                                }
+
+                                if (count == assetbundlekey.Count)
+                                {
+                                    _ = Dispatcher.InvokeAsync(() =>
+                                    {
+                                        Download_Status.Items.Insert(0, "解密失败: " + names);
+                                    });
+                                    output = raw;
+                                    WP += "(undecrypted)";
+                                }
+                                break;
+                        }
+                    else
+                        output = raw;
+
+                    using (var fs = new FileStream(WP, FileMode.OpenOrCreate,
+                               FileAccess.Write))
                     {
                         fs.Write(output, 0, output.Length);
                     }
@@ -663,8 +786,10 @@ namespace Osakabehime
             var DataTimeStringINFO = ASLine[1].Split(',');
             var DataVersion = DataTimeStringINFO[2];
             var ProgressBarValueAdd = (double)50000 / ASLineCount;
-            var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
-            var assetList = JArray.Parse(File.ReadAllText(gamedata.FullName + "AssetName.json"));
+            var assetBundleFolder =
+                File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
+            var assetList = JArray.Parse(
+                File.ReadAllText(gamedata.FullName + "AssetName.json"));
             var isM2 = false;
             var isAudioDownload = false;
             var isMovieDownload = false;
@@ -685,64 +810,61 @@ namespace Osakabehime
                     Download_Progress.Value += Value;
                 });
                 await Task.Delay(10);
-                goto AudioAndMovie;
             }
 
-            foreach (var asset in assetList)
-            {
-                var filename = asset["fileName"].ToString();
-                var assetName = asset["assetName"].ToString();
-                if (!assetName.EndsWith(".unity3d")) continue;
-                var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
-                                DataVersion.Replace(":", "") + "\\";
-                var names = assetName.Split('@');
-                if (names.Length > 1)
+            while (isAssetsDownload)
+                foreach (var asset in assetList)
                 {
-                    writePath += string.Join(@"\", names);
-                    var writeDirectory = Path.GetDirectoryName(writePath);
-                    if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
-                }
-                else
-                {
-                    writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) + "@Version@" +
-                                DataVersion.Replace(":", "") + "\\" + assetName;
-                }
-
-                if (File.Exists(writePath))
-                {
-                    if (isM2)
+                    var filename = asset["fileName"].ToString();
+                    var assetName = asset["assetName"].ToString();
+                    var keyId = asset["keyId"].ToString();
+                    if (!assetName.EndsWith(".unity3d")) continue;
+                    var writePath =
+                        AssetsFolder.FullName.Substring(0,
+                            AssetsFolder.FullName.Length - 1) + "@Version@" +
+                        DataVersion.Replace(":", "") + "\\";
+                    var names = assetName.Split('@');
+                    if (names.Length > 1)
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            Download_Status.Items.Insert(0, "跳过: " + $"{string.Join(@"\", names)}");
-                            Download_Progress.Value += ProgressBarValueAdd;
-                        });
-                        await Task.Delay(10);
-                        continue;
+                        writePath += string.Join(@"\", names);
+                        var writeDirectory = Path.GetDirectoryName(writePath);
+                        if (!Directory.Exists(writeDirectory))
+                            Directory.CreateDirectory(writeDirectory);
+                    }
+                    else
+                    {
+                        writePath = AssetsFolder.FullName.Substring(0,
+                                        AssetsFolder.FullName.Length - 1) +
+                                    "@Version@" +
+                                    DataVersion.Replace(":", "") + "\\" + assetName;
                     }
 
-                    File.Delete(writePath);
+                    if (File.Exists(writePath))
+                    {
+                        if (isM2)
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                Download_Status.Items.Insert(0,
+                                    "跳过: " + $"{string.Join(@"\", names)}");
+                                Download_Progress.Value += ProgressBarValueAdd;
+                            });
+                            await Task.Delay(10);
+                            continue;
+                        }
+
+                        File.Delete(writePath);
+                    }
+
+                    await Task.Run(() =>
+                    {
+                        DownloadAssetSub1(assetBundleFolder, filename,
+                            writePath, names, ProgressBarValueAdd, keyId);
+                    }).ConfigureAwait(false);
                 }
 
-                await Task.Run(() =>
-                {
-                    DownloadAssetSub1(assetBundleFolder, filename, writePath, names, ProgressBarValueAdd);
-                }).ConfigureAwait(false);
-            }
-
-            AudioAndMovie:
             await DownloadAudioSub(isAudioDownload);
             await DownloadMovieSub(isMovieDownload);
-            /*var DAS = new Task(() =>
-            {
-                DownloadAudioSub(isAudioDownload);
-            });
-            var DMS = new Task(() =>
-            {
-               DownloadMovieSub(isMovieDownload);
-            });
-            DAS.Start();
-            DMS.Start();*/
             GC.Collect();
         }
 
@@ -753,8 +875,10 @@ namespace Osakabehime
             var DataTimeStringINFO = ASLine[1].Split(',');
             var DataVersion = DataTimeStringINFO[2];
             var ProgressBarValueAdd = (double)50000 / ASLineCount;
-            var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
-            var audioList = JArray.Parse(File.ReadAllText(gamedata.FullName + "AudioName.json"));
+            var assetBundleFolder =
+                File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
+            var audioList = JArray.Parse(
+                File.ReadAllText(gamedata.FullName + "AudioName.json"));
             var isM2 = false;
             if (!desire)
             {
@@ -775,19 +899,24 @@ namespace Osakabehime
             foreach (var audio in audioList)
             {
                 var audioName = audio["audioName"].ToString();
-                var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
-                                "@Version@" + DataVersion.Replace(":", "") + "\\";
+                var writePath =
+                    AssetsFolder.FullName.Substring(0,
+                        AssetsFolder.FullName.Length - 1) +
+                    "@Version@" + DataVersion.Replace(":", "") + "\\";
                 var names = audioName.Split('@');
                 if (names.Length > 1)
                 {
                     writePath += string.Join(@"\", names);
                     var writeDirectory = Path.GetDirectoryName(writePath);
-                    if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
+                    if (!Directory.Exists(writeDirectory))
+                        Directory.CreateDirectory(writeDirectory);
                 }
                 else
                 {
-                    writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
-                                "@Version@" + DataVersion.Replace(":", "") + "\\" + audioName;
+                    writePath = AssetsFolder.FullName.Substring(0,
+                                    AssetsFolder.FullName.Length - 1) +
+                                "@Version@" + DataVersion.Replace(":", "") +
+                                "\\" + audioName;
                 }
 
                 if (File.Exists(writePath))
@@ -796,7 +925,8 @@ namespace Osakabehime
                     {
                         Dispatcher.Invoke(() =>
                         {
-                            Download_Status.Items.Insert(0, "跳过: " + $"{string.Join(@"\", names)}");
+                            Download_Status.Items.Insert(0,
+                                "跳过: " + $"{string.Join(@"\", names)}");
                             Download_Progress.Value += ProgressBarValueAdd;
                         });
                         await Task.Delay(10);
@@ -809,7 +939,8 @@ namespace Osakabehime
                 var realAudioDownloadName = audioName.Replace("@", "_");
                 await Task.Run(() =>
                 {
-                    DownloadAssetSub2(assetBundleFolder, realAudioDownloadName, writePath, names,
+                    DownloadAssetSub2(assetBundleFolder, realAudioDownloadName,
+                        writePath, names,
                         ProgressBarValueAdd);
                 }).ConfigureAwait(false);
             }
@@ -824,8 +955,10 @@ namespace Osakabehime
             var DataTimeStringINFO = ASLine[1].Split(',');
             var DataVersion = DataTimeStringINFO[2];
             var ProgressBarValueAdd = (double)50000 / ASLineCount;
-            var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
-            var movieList = JArray.Parse(File.ReadAllText(gamedata.FullName + "MovieName.json"));
+            var assetBundleFolder =
+                File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
+            var movieList = JArray.Parse(
+                File.ReadAllText(gamedata.FullName + "MovieName.json"));
             var isM2 = false;
             if (!desire)
             {
@@ -846,19 +979,24 @@ namespace Osakabehime
             foreach (var movie in movieList)
             {
                 var movieName = movie["movieName"].ToString();
-                var writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
-                                "@Version@" + DataVersion.Replace(":", "") + "\\";
+                var writePath =
+                    AssetsFolder.FullName.Substring(0,
+                        AssetsFolder.FullName.Length - 1) +
+                    "@Version@" + DataVersion.Replace(":", "") + "\\";
                 var names = movieName.Split('@');
                 if (names.Length > 1)
                 {
                     writePath += string.Join(@"\", names);
                     var writeDirectory = Path.GetDirectoryName(writePath);
-                    if (!Directory.Exists(writeDirectory)) Directory.CreateDirectory(writeDirectory);
+                    if (!Directory.Exists(writeDirectory))
+                        Directory.CreateDirectory(writeDirectory);
                 }
                 else
                 {
-                    writePath = AssetsFolder.FullName.Substring(0, AssetsFolder.FullName.Length - 1) +
-                                "@Version@" + DataVersion.Replace(":", "") + "\\" + movieName;
+                    writePath = AssetsFolder.FullName.Substring(0,
+                                    AssetsFolder.FullName.Length - 1) +
+                                "@Version@" + DataVersion.Replace(":", "") +
+                                "\\" + movieName;
                 }
 
                 if (File.Exists(writePath))
@@ -867,7 +1005,8 @@ namespace Osakabehime
                     {
                         Dispatcher.Invoke(() =>
                         {
-                            Download_Status.Items.Insert(0, "跳过: " + $"{string.Join(@"\", names)}");
+                            Download_Status.Items.Insert(0,
+                                "跳过: " + $"{string.Join(@"\", names)}");
                             Download_Progress.Value += ProgressBarValueAdd;
                         });
                         await Task.Delay(10);
@@ -880,7 +1019,8 @@ namespace Osakabehime
                 var realAudioDownloadName = movieName.Replace("@", "_");
                 await Task.Run(() =>
                 {
-                    DownloadAssetSub2(assetBundleFolder, realAudioDownloadName, writePath, names,
+                    DownloadAssetSub2(assetBundleFolder, realAudioDownloadName,
+                        writePath, names,
                         ProgressBarValueAdd);
                 }).ConfigureAwait(false);
             }
@@ -888,23 +1028,69 @@ namespace Osakabehime
             GC.Collect();
         }
 
-        private void DownloadAssetSub1(string assetBundleFolder, string filename, string writePath, string[] names,
-            double ProgressBarValueAdd)
+        private void DownloadAssetSub1(string assetBundleFolder,
+            string filename, string writePath, string[] names,
+            double ProgressBarValueAdd, string keyId)
         {
+            var WP = writePath;
             try
             {
                 var raw = HttpRequest
-                    .Get($"https://cdn.data.fate-go.jp/AssetStorages/{assetBundleFolder}Android/{filename}")
+                    .Get(
+                        $"https://cdn.data.fate-go.jp/AssetStorages/{assetBundleFolder}Android/{filename}")
                     .ToBinary();
-                var output = CatAndMouseGame.MouseGame4(raw);
-                using (var fs = new FileStream(writePath, FileMode.OpenOrCreate, FileAccess.Write))
+                byte[] output = null;
+                switch (keyId)
+                {
+                    case "0":
+                        output = CatAndMouseGame.MouseGame4(raw);
+                        break;
+                    default:
+                        if (!File.Exists(gamedata.FullName + @"\assetbundlekey.json"))
+                        {
+                            Dispatcher.Invoke(() => { Download_Status.Items.Insert(0, "解密失败: " + names); });
+                            output = raw;
+                            WP += "(undecrypted)";
+                            break;
+                        }
+
+                        var assetbundlekey =
+                            (JArray)JsonConvert.DeserializeObject(
+                                File.ReadAllText(gamedata.FullName + @"\assetbundlekey.json"));
+                        var count = 0;
+                        foreach (var key in assetbundlekey)
+                        {
+                            if (((JObject)key)["id"].ToString() != keyId)
+                            {
+                                count++;
+                                continue;
+                            }
+
+                            var try_key = ((JObject)key)["decryptKey"].ToString();
+                            output = CatAndMouseGame.MouseGame4_34091820(raw, try_key);
+                            break;
+                        }
+
+                        if (count == assetbundlekey.Count)
+                        {
+                            Dispatcher.Invoke(() => { Download_Status.Items.Insert(0, "解密失败: " + names); });
+                            output = raw;
+                            WP += "(undecrypted)";
+                        }
+
+                        break;
+                }
+
+                using (var fs = new FileStream(WP, FileMode.OpenOrCreate,
+                           FileAccess.Write))
                 {
                     fs.Write(output, 0, output.Length);
                 }
 
                 Dispatcher.Invoke(() =>
                 {
-                    Download_Status.Items.Insert(0, "下载: " + $"{string.Join(@"\", names)}");
+                    Download_Status.Items.Insert(0,
+                        "下载: " + $"{string.Join(@"\", names)}");
                     Download_Progress.Value += ProgressBarValueAdd;
                 });
             }
@@ -912,30 +1098,35 @@ namespace Osakabehime
             {
                 Dispatcher.Invoke(() =>
                 {
-                    Download_Status.Items.Insert(0, "下载错误: " + $"{string.Join(@"\", names)}");
+                    Download_Status.Items.Insert(0,
+                        "下载错误: " + $"{string.Join(@"\", names)}");
                     Download_Progress.Value += ProgressBarValueAdd;
                     Download_Status.Items.Insert(0, ex);
                 });
             }
         }
 
-        private void DownloadAssetSub2(string assetBundleFolder, string filename, string writePath, string[] names,
+        private void DownloadAssetSub2(string assetBundleFolder,
+            string filename, string writePath, string[] names,
             double ProgressBarValueAdd)
         {
             try
             {
                 var raw = HttpRequest
-                    .Get($"https://cdn.data.fate-go.jp/AssetStorages/{assetBundleFolder}Android/{filename}")
+                    .Get(
+                        $"https://cdn.data.fate-go.jp/AssetStorages/{assetBundleFolder}Android/{filename}")
                     .ToBinary();
                 var output = raw;
-                using (var fs = new FileStream(writePath, FileMode.OpenOrCreate, FileAccess.Write))
+                using (var fs = new FileStream(writePath, FileMode.OpenOrCreate,
+                           FileAccess.Write))
                 {
                     fs.Write(output, 0, output.Length);
                 }
 
                 _ = Dispatcher.InvokeAsync(() =>
                 {
-                    Download_Status.Items.Insert(0, "下载: " + $"{string.Join(@"\", names)}");
+                    Download_Status.Items.Insert(0,
+                        "下载: " + $"{string.Join(@"\", names)}");
                     Download_Progress.Value += ProgressBarValueAdd;
                 });
             }
@@ -943,7 +1134,8 @@ namespace Osakabehime
             {
                 _ = Dispatcher.InvokeAsync(() =>
                 {
-                    Download_Status.Items.Insert(0, "下载错误: " + $"{string.Join(@"\", names)}");
+                    Download_Status.Items.Insert(0,
+                        "下载错误: " + $"{string.Join(@"\", names)}");
                     Download_Status.Items.Insert(0, ex);
                 });
             }
@@ -976,7 +1168,11 @@ namespace Osakabehime
             }
             catch (Exception e)
             {
-                Dispatcher.Invoke(() => { MessageBox.Error("网络连接异常,请检查网络连接并重试.\r\n" + e, "网络连接异常"); });
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Error("网络连接异常,请检查网络连接并重试.\r\n" + e,
+                        "网络连接异常");
+                });
                 CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
                 return;
             }
@@ -987,27 +1183,36 @@ namespace Osakabehime
                 {
                     CommonStrings.SuperMsgBoxRes = MessageBox.Show(
                         Application.Current.MainWindow,
-                        "检测到软件更新\r\n\r\n新版本为:  " + VerChk["tag_name"] + "    当前版本为:  " + CommonStrings.VersionTag +
-                        "\r\n\r\nChangeLog:\r\n" + VerChk["body"] + "\r\n\r\n点击\"确认\"按钮可选择更新.", "检查更新",
+                        "检测到软件更新\r\n\r\n新版本为:  " + VerChk["tag_name"] +
+                        "    当前版本为:  " + CommonStrings.VersionTag +
+                        "\r\n\r\nChangeLog:\r\n" + VerChk["body"] +
+                        "\r\n\r\n点击\"确认\"按钮可选择更新.", "检查更新",
                         MessageBoxButton.OKCancel,
                         MessageBoxImage.Question);
                 });
                 if (CommonStrings.SuperMsgBoxRes == MessageBoxResult.OK)
                 {
-                    VerAssetsJArray = (JArray)JsonConvert.DeserializeObject(VerChk["assets"].ToString());
+                    VerAssetsJArray =
+                        (JArray)JsonConvert.DeserializeObject(VerChk["assets"]
+                            .ToString());
                     for (var i = 0; i <= VerAssetsJArray.Count - 1; i++)
-                        if (VerAssetsJArray[i]["name"].ToString() == "Osakabehime.exe")
-                            CommonStrings.ExeUpdateUrl = VerAssetsJArray[i]["browser_download_url"].ToString();
+                        if (VerAssetsJArray[i]["name"].ToString() ==
+                            "Osakabehime.exe")
+                            CommonStrings.ExeUpdateUrl =
+                                VerAssetsJArray[i]["browser_download_url"]
+                                    .ToString();
                     if (CommonStrings.ExeUpdateUrl == "")
                     {
                         Dispatcher.Invoke(() =>
                         {
                             MessageBox.Show(
-                                Application.Current.MainWindow, "确认到新版本更新,但是获取下载Url失败.\r\n", "获取Url失败",
+                                Application.Current.MainWindow,
+                                "确认到新版本更新,但是获取下载Url失败.\r\n", "获取Url失败",
                                 MessageBoxButton.OK,
                                 MessageBoxImage.Error);
                         });
-                        MessageBox.Error("确认到新版本更新,但是获取下载Url失败.\r\n", "获取Url失败");
+                        MessageBox.Error("确认到新版本更新,但是获取下载Url失败.\r\n",
+                            "获取Url失败");
                         CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
                         return;
                     }
@@ -1024,7 +1229,9 @@ namespace Osakabehime
             {
                 Dispatcher.Invoke(() =>
                 {
-                    MessageBox.Info("当前版本为:  " + CommonStrings.VersionTag + "\r\n\r\n无需更新.", "检查更新");
+                    MessageBox.Info(
+                        "当前版本为:  " + CommonStrings.VersionTag +
+                        "\r\n\r\n无需更新.", "检查更新");
                 });
                 CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
             }
@@ -1035,7 +1242,8 @@ namespace Osakabehime
             var path = Directory.GetCurrentDirectory();
             try
             {
-                DownloadFile(CommonStrings.ExeUpdateUrl, path + "/Osakabehime(Update " + VerChk + ").exe");
+                DownloadFile(CommonStrings.ExeUpdateUrl,
+                    path + "/Osakabehime(Update " + VerChk + ").exe");
                 CommonStrings.NewerVersion = VerChk.ToString();
             }
             catch (Exception e)
@@ -1043,7 +1251,8 @@ namespace Osakabehime
                 Dispatcher.Invoke(() =>
                 {
                     MessageBox.Show(
-                        Application.Current.MainWindow, "写入文件异常.\r\n" + e, "异常", MessageBoxButton.OK,
+                        Application.Current.MainWindow, "写入文件异常.\r\n" + e, "异常",
+                        MessageBoxButton.OK,
                         MessageBoxImage.Error);
                 });
                 CheckUpdate.Dispatcher.Invoke(() => { CheckUpdate.IsEnabled = true; });
@@ -1066,7 +1275,8 @@ namespace Osakabehime
             Downloads.DownloadFileAsync(new Uri(url), filePath);
         }
 
-        private void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
+        private void OnDownloadFileCompleted(object sender,
+            AsyncCompletedEventArgs e)
         {
             var path = Directory.GetCurrentDirectory();
             Dispatcher.Invoke(() =>
@@ -1075,7 +1285,8 @@ namespace Osakabehime
                     Application.Current.MainWindow,
                     "下载完成.下载目录为: \r\n" + path + "\\Osakabehime(Update " +
                     CommonStrings.NewerVersion +
-                    ").exe\r\n\r\n请自行替换文件.\r\n\r\n您是否要关闭当前版本的程序?", "检查更新", MessageBoxButton.YesNo,
+                    ").exe\r\n\r\n请自行替换文件.\r\n\r\n您是否要关闭当前版本的程序?", "检查更新",
+                    MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
             });
             if (CommonStrings.SuperMsgBoxRes == MessageBoxResult.Yes)
@@ -1089,7 +1300,8 @@ namespace Osakabehime
             updatestatus2.Dispatcher.Invoke(() => { updatestatus2.Text = ""; });
         }
 
-        private void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        private void OnDownloadProgressChanged(object sender,
+            DownloadProgressChangedEventArgs e)
         {
             progressbar1.Dispatcher.Invoke(() => { progressbar1.Value = e.ProgressPercentage; });
             var s = (DateTime.Now - CommonStrings.StartTime).TotalSeconds;
@@ -1097,8 +1309,10 @@ namespace Osakabehime
             updatestatus2.Dispatcher.Invoke(() =>
             {
                 updatestatus2.Text = "下载速度: " + sd + "/s" + ", 已下载: " +
-                                     HttpRequest.ReadableFilesize(e.BytesReceived) + " / 总计: " +
-                                     HttpRequest.ReadableFilesize(e.TotalBytesToReceive);
+                                     HttpRequest.ReadableFilesize(
+                                         e.BytesReceived) + " / 总计: " +
+                                     HttpRequest.ReadableFilesize(
+                                         e.TotalBytesToReceive);
             });
         }
 
@@ -1112,10 +1326,12 @@ namespace Osakabehime
         private void AlphaImage(object sender, RoutedEventArgs e)
         {
             Start_Alpha.IsEnabled = false;
-            var inputdialog = new CommonOpenFileDialog { IsFolderPicker = true, Title = "需要合成的Alpha图片文件目录." };
+            var inputdialog = new CommonOpenFileDialog
+                { IsFolderPicker = true, Title = "需要合成的Alpha图片文件目录." };
             var resultinput = inputdialog.ShowDialog();
             var inputfolder = "";
-            if (resultinput == CommonFileDialogResult.Ok) inputfolder = inputdialog.FileName;
+            if (resultinput == CommonFileDialogResult.Ok)
+                inputfolder = inputdialog.FileName;
             if (inputfolder == "")
             {
                 Start_Alpha.IsEnabled = true;
@@ -1129,7 +1345,8 @@ namespace Osakabehime
         private async Task AlphaImageMerge(string InputDirectory)
         {
             var TrueDirectory = new DirectoryInfo(InputDirectory);
-            var MergedDirectory = new DirectoryInfo(InputDirectory + @"\Merged");
+            var MergedDirectory =
+                new DirectoryInfo(InputDirectory + @"\Merged");
             var FileCounts = 0;
             var WaitingList = new List<string>();
             Dispatcher.Invoke(() =>
@@ -1148,7 +1365,9 @@ namespace Osakabehime
             });
             foreach (var file in TrueDirectory.GetFiles("*.png"))
             {
-                if (!File.Exists(file.FullName.Substring(0, file.FullName.Length - 4) + AlphaBackName)) continue;
+                if (!File.Exists(
+                        file.FullName.Substring(0, file.FullName.Length - 4) +
+                        AlphaBackName)) continue;
                 Dispatcher.Invoke(() => { Alpha_Status.Items.Insert(0, "可用: " + file.Name); });
                 FileCounts++;
                 WaitingList.Add(file.FullName);
@@ -1166,7 +1385,8 @@ namespace Osakabehime
                 return;
             }
 
-            if (!Directory.Exists(MergedDirectory.FullName)) MergedDirectory.Create();
+            if (!Directory.Exists(MergedDirectory.FullName))
+                MergedDirectory.Create();
             var WaitingArray = WaitingList.ToArray();
             var Add_Value = 0.0;
             Dispatcher.Invoke(() =>
@@ -1181,11 +1401,14 @@ namespace Osakabehime
                     try
                     {
                         var foreground = new Bitmap(fileneeded);
-                        var alpha = new Bitmap(fileneeded.Substring(0, fileneeded.Length - 4) + AlphaBackName);
+                        var alpha = new Bitmap(
+                            fileneeded.Substring(0, fileneeded.Length - 4) +
+                            AlphaBackName);
                         var DisplayName = new FileInfo(fileneeded);
                         Dispatcher.Invoke(() =>
                         {
-                            Alpha_Status.Items.Insert(0, "开始合成: " + DisplayName.Name);
+                            Alpha_Status.Items.Insert(0,
+                                "开始合成: " + DisplayName.Name);
                             Alpha_Progress.Value += Add_Value;
                         });
                         for (var i = 0; i < foreground.Width; i++)
@@ -1193,17 +1416,21 @@ namespace Osakabehime
                         {
                             var forec = foreground.GetPixel(i, j);
                             var alphac = alpha.GetPixel(i, j);
-                            foreground.SetPixel(i, j, Color.FromArgb(alphac.R, forec.R, forec.G, forec.B));
+                            foreground.SetPixel(i, j,
+                                Color.FromArgb(alphac.R, forec.R, forec.G,
+                                    forec.B));
                         }
 
                         Dispatcher.Invoke(() =>
                         {
-                            Alpha_Status.Items.Insert(0, "合成结束: " + DisplayName.Name);
+                            Alpha_Status.Items.Insert(0,
+                                "合成结束: " + DisplayName.Name);
                             Alpha_Progress.Value += Add_Value;
                         });
                         foreground.Save(
                             MergedDirectory.FullName + @"\\" +
-                            DisplayName.Name.Substring(0, DisplayName.Name.Length - 4) +
+                            DisplayName.Name.Substring(0,
+                                DisplayName.Name.Length - 4) +
                             "_merged.png", ImageFormat.Png);
                         Thread.Sleep(500);
                     }
@@ -1239,14 +1466,17 @@ namespace Osakabehime
             var res = File.ReadAllText(beh);
             var imgSrc = Image.FromFile(src);
             var MonoJson = JObject.Parse(res);
-            var Sprites = (JArray)JsonConvert.DeserializeObject(MonoJson["mSprites"].ToString());
+            var Sprites =
+                (JArray)JsonConvert.DeserializeObject(MonoJson["mSprites"]
+                    .ToString());
             foreach (var cuttmp in Sprites)
             {
                 var tmp = JObject.Parse(cuttmp.ToString());
                 Image ss;
                 try
                 {
-                    ss = KiCut(imgSrc, int.Parse(tmp["x"].ToString()), int.Parse(tmp["y"].ToString()),
+                    ss = KiCut(imgSrc, int.Parse(tmp["x"].ToString()),
+                        int.Parse(tmp["y"].ToString()),
                         int.Parse(tmp["width"].ToString()),
                         int.Parse(tmp["height"].ToString()));
                 }
@@ -1255,14 +1485,24 @@ namespace Osakabehime
                     Dispatcher.Invoke(() =>
                     {
                         Icon_Status.Items.Insert(0, e);
-                        Icon_Status.Items.Insert(0, "错误:" + tmp["name"] + ".png");
+                        Icon_Status.Items.Insert(0,
+                            "错误:" + tmp["name"] + ".png");
                     });
                     continue;
                 }
 
-                Dispatcher.Invoke(() => { Icon_Status.Items.Insert(0, "正在切割:" + tmp["name"] + ".png"); });
-                ss.Save(CutDirectory.FullName + @"\\" + tmp["name"] + ".png", ImageFormat.Png);
-                Dispatcher.Invoke(() => { Icon_Status.Items.Insert(0, "切割完成:" + tmp["name"] + ".png"); });
+                Dispatcher.Invoke(() =>
+                {
+                    Icon_Status.Items.Insert(0,
+                        "正在切割:" + tmp["name"] + ".png");
+                });
+                ss.Save(CutDirectory.FullName + @"\\" + tmp["name"] + ".png",
+                    ImageFormat.Png);
+                Dispatcher.Invoke(() =>
+                {
+                    Icon_Status.Items.Insert(0,
+                        "切割完成:" + tmp["name"] + ".png");
+                });
             }
 
             Dispatcher.Invoke(() => { Icon_Status.Items.Insert(0, "合成工作全部完成."); });
@@ -1275,7 +1515,8 @@ namespace Osakabehime
             GC.Collect();
         }
 
-        public static Image KiCut(Image b, int StartX, int StartY, int iWidth, int iHeight)
+        public static Image KiCut(Image b, int StartX, int StartY, int iWidth,
+            int iHeight)
         {
             if (b == null) return null;
 
@@ -1293,7 +1534,8 @@ namespace Osakabehime
                 var bmpOut = new Bitmap(iWidth, iHeight);
 
                 var g = Graphics.FromImage(bmpOut);
-                g.DrawImage(b, new Rectangle(0, 0, iWidth, iHeight), new Rectangle(StartX, StartY, iWidth, iHeight),
+                g.DrawImage(b, new Rectangle(0, 0, iWidth, iHeight),
+                    new Rectangle(StartX, StartY, iWidth, iHeight),
                     GraphicsUnit.Pixel);
                 g.Dispose();
 
@@ -1321,41 +1563,50 @@ namespace Osakabehime
 
         private void Select_Png(object sender, RoutedEventArgs e)
         {
-            var inputdialog = new CommonOpenFileDialog { Title = "选择需要切割的png文件.", Multiselect = false };
+            var inputdialog = new CommonOpenFileDialog
+                { Title = "选择需要切割的png文件.", Multiselect = false };
             inputdialog.Filters.Add(new CommonFileDialogFilter("png图片", "png"));
             var resultinput = inputdialog.ShowDialog();
             var input = "";
-            if (resultinput == CommonFileDialogResult.Ok) input = inputdialog.FileName;
+            if (resultinput == CommonFileDialogResult.Ok)
+                input = inputdialog.FileName;
             if (input == "")
                 MessageBox.Error("错误的文件.", "温馨提示:");
             else
                 Icon_Cutter_pngpickerdisplay.Text = input;
-            if (Icon_Cutter_pngpickerdisplay.Text != "" && Icon_Cutter_monopickerdisplay.Text != "")
+            if (Icon_Cutter_pngpickerdisplay.Text != "" &&
+                Icon_Cutter_monopickerdisplay.Text != "")
                 Start_IconCutter.IsEnabled = true;
         }
 
         private void Select_Mono(object sender, RoutedEventArgs e)
         {
-            var inputdialog = new CommonOpenFileDialog { Title = "选择对应的MonoBehavior文件.", Multiselect = false };
-            inputdialog.Filters.Add(new CommonFileDialogFilter("MonoBehavior文件", "json,txt"));
+            var inputdialog = new CommonOpenFileDialog
+                { Title = "选择对应的MonoBehavior文件.", Multiselect = false };
+            inputdialog.Filters.Add(
+                new CommonFileDialogFilter("MonoBehavior文件", "json,txt"));
             var resultinput = inputdialog.ShowDialog();
             var input = "";
-            if (resultinput == CommonFileDialogResult.Ok) input = inputdialog.FileName;
+            if (resultinput == CommonFileDialogResult.Ok)
+                input = inputdialog.FileName;
             if (input == "")
                 MessageBox.Error("错误的文件.", "温馨提示:");
             else
                 Icon_Cutter_monopickerdisplay.Text = input;
-            if (Icon_Cutter_pngpickerdisplay.Text != "" && Icon_Cutter_monopickerdisplay.Text != "")
+            if (Icon_Cutter_pngpickerdisplay.Text != "" &&
+                Icon_Cutter_monopickerdisplay.Text != "")
                 Start_IconCutter.IsEnabled = true;
         }
 
         private void Start_ScriptDecry_OnClick(object sender, RoutedEventArgs e)
         {
             Start_ScriptDecry.IsEnabled = false;
-            var inputdialog = new CommonOpenFileDialog { IsFolderPicker = true, Title = "需要解密的剧情文本文件目录." };
+            var inputdialog = new CommonOpenFileDialog
+                { IsFolderPicker = true, Title = "需要解密的剧情文本文件目录." };
             var resultinput = inputdialog.ShowDialog();
             var inputfolder = "";
-            if (resultinput == CommonFileDialogResult.Ok) inputfolder = inputdialog.FileName;
+            if (resultinput == CommonFileDialogResult.Ok)
+                inputfolder = inputdialog.FileName;
             if (inputfolder == "")
             {
                 Start_ScriptDecry.IsEnabled = true;
@@ -1372,13 +1623,17 @@ namespace Osakabehime
                 Script_Status.Items.Insert(0, "开始解密剧情文本...");
             });
             var ignoreabk = false;
-            if (!File.Exists(gamedata.FullName + @"\assetbundlekey.json") && SrvJPS.IsChecked == true)
+            if (!File.Exists(gamedata.FullName + @"\assetbundlekey.json") &&
+                SrvJPS.IsChecked == true)
             {
-                MessageBox.Error("未找到assetbundlekey.json,本次将忽略该操作.\r\n请使用Altera下载一次数据.", "温馨提示:");
+                MessageBox.Error(
+                    "未找到assetbundlekey.json,本次将忽略该操作.\r\n请使用Altera下载一次数据.",
+                    "温馨提示:");
                 ignoreabk = !ignoreabk;
             }
 
-            var SD = new Task(() => { ScriptDecrycter(inputfolder, ignoreabk); });
+            var SD = new Task(
+                () => { ScriptDecrycter(inputfolder, ignoreabk); });
             SD.Start();
         }
 
@@ -1413,7 +1668,8 @@ namespace Osakabehime
             var checkbool = false;
             Dispatcher.Invoke(() =>
             {
-                checkbool = SrvJPS.IsChecked == true && isUsingabK.IsChecked == true && !ignoreabk;
+                checkbool = SrvJPS.IsChecked == true &&
+                            isUsingabK.IsChecked == true && !ignoreabk;
             });
             var progressValue = Convert.ToDouble(100000 / FileCounts);
             foreach (var file in DirectoryInput.GetFiles("*.txt"))
@@ -1426,15 +1682,22 @@ namespace Osakabehime
                 {
                     if (checkbool)
                     {
-                        Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "尝试额外解密:" + file.Name); });
+                        Dispatcher.Invoke(() =>
+                        {
+                            Script_Status.Items.Insert(0,
+                                "尝试额外解密:" + file.Name);
+                        });
                         var assetbundlekey =
                             (JArray)JsonConvert.DeserializeObject(
-                                File.ReadAllText(gamedata.FullName + @"\assetbundlekey.json"));
+                                File.ReadAllText(gamedata.FullName +
+                                                 @"\assetbundlekey.json"));
                         var counter = 0;
                         foreach (var key in assetbundlekey)
                         {
-                            var try_key = ((JObject)key)["decryptKey"].ToString();
-                            result = CatAndMouseGame.MouseGame3_34091232(data, try_key);
+                            var try_key = ((JObject)key)["decryptKey"]
+                                .ToString();
+                            result = CatAndMouseGame.MouseGame3_34091232(data,
+                                try_key);
                             if (result == null)
                             {
                                 counter++;
@@ -1442,30 +1705,49 @@ namespace Osakabehime
                                 continue;
                             }
 
-                            Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "解密:" + file.Name); });
+                            Dispatcher.Invoke(() =>
+                            {
+                                Script_Status.Items.Insert(0,
+                                    "解密:" + file.Name);
+                            });
                             File.WriteAllText(
-                                OutputDirectory.FullName + @"\" + file.Name.Substring(0, file.Name.Length - 4) +
-                                "@usedKeytype-" + ((JObject)key)["id"] + ".txt", result);
-                            File.Move(file.FullName, CanDelDirectory.FullName + @"\" + file.Name);
+                                OutputDirectory.FullName + @"\" +
+                                file.Name.Substring(0, file.Name.Length - 4) +
+                                "@usedKeytype-" + ((JObject)key)["id"] + ".txt",
+                                result);
+                            File.Move(file.FullName,
+                                CanDelDirectory.FullName + @"\" + file.Name);
                             Thread.Sleep(1);
                             break;
                         }
 
                         if (counter != assetbundlekey.Count) continue;
-                        Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "额外解密失败:" + file.Name); });
-                        File.Move(file.FullName, FailedDirectory.FullName + @"\" + file.Name);
+                        Dispatcher.Invoke(() =>
+                        {
+                            Script_Status.Items.Insert(0,
+                                "额外解密失败:" + file.Name);
+                        });
+                        File.Move(file.FullName,
+                            FailedDirectory.FullName + @"\" + file.Name);
                     }
                     else
                     {
-                        Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "解密失败:" + file.Name); });
-                        File.Move(file.FullName, FailedDirectory.FullName + @"\" + file.Name);
+                        Dispatcher.Invoke(() =>
+                        {
+                            Script_Status.Items.Insert(0,
+                                "解密失败:" + file.Name);
+                        });
+                        File.Move(file.FullName,
+                            FailedDirectory.FullName + @"\" + file.Name);
                     }
                 }
                 else
                 {
                     Dispatcher.Invoke(() => { Script_Status.Items.Insert(0, "解密:" + file.Name); });
-                    File.WriteAllText(OutputDirectory.FullName + @"\" + file.Name, result);
-                    File.Move(file.FullName, CanDelDirectory.FullName + @"\" + file.Name);
+                    File.WriteAllText(
+                        OutputDirectory.FullName + @"\" + file.Name, result);
+                    File.Move(file.FullName,
+                        CanDelDirectory.FullName + @"\" + file.Name);
                 }
 
                 Thread.Sleep(1);
