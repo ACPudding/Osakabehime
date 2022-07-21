@@ -64,21 +64,6 @@
                                VerticalAlignment="Top"
                                Width="374" FontSize="13" Foreground="#FF333333" FontWeight="Bold"
                                FontFamily="Source Han Sans SC" />
-                    <TextBlock Text="下载线程(线程越高下载越快，但失败率越高):"
-                               HorizontalAlignment="Left" Height="24" Margin="10,187,0,0"
-                               VerticalAlignment="Top"
-                               Width="273" FontSize="13" Foreground="#FF333333" FontFamily="Source Han Sans SC"
-                               Visibility="{Binding IsChecked, Converter={StaticResource Boolean2VisibilityConverter}, ElementName=Mode1}" />
-                    <RadioButton x:Name="OneThread" Content="单线程" HorizontalAlignment="Left" Margin="74,211,0,0"
-                                 VerticalAlignment="Top" GroupName="DownloadThread"
-                                 IsChecked="True"
-                                 Visibility="{Binding IsChecked, Converter={StaticResource Boolean2VisibilityConverter}, ElementName=Mode1}" />
-                    <RadioButton x:Name="TwoThread" Content="2线程" HorizontalAlignment="Left" Margin="74,234,0,0"
-                                 VerticalAlignment="Top" GroupName="DownloadThread"
-                                 Visibility="{Binding IsChecked, Converter={StaticResource Boolean2VisibilityConverter}, ElementName=Mode1}" />
-                    <RadioButton x:Name="FourThread" Content="4线程" HorizontalAlignment="Left" Margin="74,257,0,0"
-                                 VerticalAlignment="Top" GroupName="DownloadThread"
-                                 Visibility="{Binding IsChecked, Converter={StaticResource Boolean2VisibilityConverter}, ElementName=Mode1}" />
                     <Button Style="{StaticResource ButtonPrimary}" hc:BorderElement.CornerRadius="15"
                             x:Name="ResetDownloadStatus" Content="重置进度" HorizontalAlignment="Left"
                             Margin="315,349,0,0" VerticalAlignment="Top" Width="90"

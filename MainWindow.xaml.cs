@@ -344,16 +344,9 @@ namespace Osakabehime
             var ASLine = File.ReadAllLines(AssetStorageFilePath);
             var DataTimeStringINFO = ASLine[1].Split(',');
             var DataVersion = DataTimeStringINFO[2];
-            var DownloadParallel = 1;
-            _ = Dispatcher.Invoke(async () =>
-            {
-                if (TwoThread.IsChecked == true) DownloadParallel = 2;
-                if (FourThread.IsChecked == true) DownloadParallel = 4;
-            });
-            var paralleloptions = new ParallelOptions { MaxDegreeOfParallelism = DownloadParallel };
             var ProgressBarValueAdd = (double)50000 / DownloadLine.Count;
             var assetBundleFolder = File.ReadAllText(gamedata.FullName + "assetBundleFolder.txt");
-            Parallel.ForEach(DownloadLine, paralleloptions, async DownloadItem =>
+            foreach (var DownloadItem in DownloadLine)
             {
                 if (tmp[DownloadItem, 4].Contains("Audio") || tmp[DownloadItem, 4].Contains("Movie"))
                 {
@@ -387,7 +380,7 @@ namespace Osakabehime
                             ProgressBarValueAdd, keyId);
                     }).ConfigureAwait(false);
                 }
-            });
+            }
         }
 
         private async Task<List<int>> FindASDiffer(int min, int max)
@@ -652,7 +645,7 @@ namespace Osakabehime
                                 }
 
                                 var try_key = ((JObject)key)["decryptKey"].ToString();
-                                output = CatAndMouseGame.MouseGame4_34091820(raw, try_key);
+                                output = CatAndMouseGame.MouseGame4(raw, try_key);
                                 break;
                             }
 
@@ -722,7 +715,7 @@ namespace Osakabehime
                                     }
 
                                     var try_key = ((JObject)key)["decryptKey"].ToString();
-                                    output = CatAndMouseGame.MouseGame4_34091820(raw, try_key);
+                                    output = CatAndMouseGame.MouseGame4(raw, try_key);
                                     break;
                                 }
 
@@ -1067,7 +1060,7 @@ namespace Osakabehime
                             }
 
                             var try_key = ((JObject)key)["decryptKey"].ToString();
-                            output = CatAndMouseGame.MouseGame4_34091820(raw, try_key);
+                            output = CatAndMouseGame.MouseGame4(raw, try_key);
                             break;
                         }
 
@@ -1696,7 +1689,7 @@ namespace Osakabehime
                         {
                             var try_key = ((JObject)key)["decryptKey"]
                                 .ToString();
-                            result = CatAndMouseGame.MouseGame3_34091232(data,
+                            result = CatAndMouseGame.MouseGame3(data,
                                 try_key);
                             if (result == null)
                             {

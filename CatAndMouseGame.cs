@@ -180,18 +180,11 @@ public class CatAndMouseGame
         return Encoding.UTF8.GetString(array).TrimEnd(new char[1]);
     }
 
-    public static string MouseGame3_34091232(string str, string key)
+    public static string MouseGame3(string str, string key)
     {
         byte[] info;
         byte[] home;
-        string output;
         OtherHomeBuilding(key, out home, out info);
-        output = MouseGame3_34091480(str, home, info);
-        return output;
-    }
-
-    public static string MouseGame3_34091480(string str, byte[] home, byte[] info)
-    {
         var bytes = Convert.FromBase64String(str);
         var array = MouseHomeMain(bytes, home, info, true);
         if (array == null) return null;
@@ -243,20 +236,14 @@ public class CatAndMouseGame
 
         return array;
     }
-    public static byte[] MouseGame4_34091820(byte[] data, string key)
+    public static byte[] MouseGame4(byte[] data, string key)
     {
         byte[] info;
         byte[] home;
-        byte[] output;
         OtherHomeBuilding(key, out home, out info);
-        output = MouseGame4_34092068(data, home, info);
-        return output;
-    }
-
-    public static byte[] MouseGame4_34092068(byte[] data, byte[] home, byte[] info)
-    {
         return MouseHomeMain(data, home, info);
     }
+
     public static string CatGame8(string str)
     {
         var bytes = Encoding.UTF8.GetBytes(str);
